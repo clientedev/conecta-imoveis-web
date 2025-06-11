@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ClientDashboard from "./pages/ClientDashboard";
 import BrokerDashboard from "./pages/BrokerDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import PropertyDetail from "./pages/PropertyDetail";
 import ScheduleVisit from "./pages/ScheduleVisit";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/corretor/login" element={<Auth />} />
             <Route path="/cliente/dashboard" element={<ClientDashboard />} />
             <Route path="/corretor/dashboard" element={<BrokerDashboard />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/imovel/:id" element={<PropertyDetail />} />
             <Route path="/agendar-visita/:id" element={<ScheduleVisit />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

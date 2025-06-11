@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, Shield } from 'lucide-react';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ const Auth = () => {
     phone: '' 
   });
   
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,12 +48,16 @@ const Auth = () => {
           description: "Redirecionando..."
         });
         
-        // Redirect based on login type
-        if (isCorretorLogin) {
-          navigate('/corretor/dashboard');
-        } else {
-          navigate('/cliente/dashboard');
-        }
+        // Wait a bit for profile to load and then redirect based on user type
+        setTimeout(() => {
+          if (profile?.user_type === 'admin') {
+            navigate('/admin/dashboard');
+          } else if (profile?.user_type === 'broker' || isCorretorLogin) {
+            navigate('/corretor/dashboard');
+          } else {
+            navigate('/cliente/dashboard');
+          }
+        }, 1000);
       }
     } catch (error) {
       toast({
@@ -87,12 +91,47 @@ const Auth = () => {
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar a conta."
+          description: "Você já pode fazer login."
         });
+        
+        // Auto login after signup
+        setTimeout(async () => {
+          await signIn(signupData.email, signupData.password);
+          navigate('/cliente/dashboard');
+        }, 1000);
       }
     } catch (error) {
       toast({
         title: "Erro no cadastro",
+        description: "Ocorreu um erro inesperado",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async () => {
+    setLoading(true);
+    try {
+      const { error } = await signIn('admin@admin.com', '47316854v8');
+      
+      if (error) {
+        toast({
+          title: "Erro no login de admin",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Login de admin realizado!",
+          description: "Redirecionando para área administrativa..."
+        });
+        navigate('/admin/dashboard');
+      }
+    } catch (error) {
+      toast({
+        title: "Erro no login de admin",
         description: "Ocorreu um erro inesperado",
         variant: "destructive"
       });
@@ -121,6 +160,32 @@ const Auth = () => {
             </CardHeader>
             
             <CardContent>
+              {/* Admin Login Button */}
+              <div className="mb-6 text-center">
+                <Button 
+                  onClick={handleAdminLogin}
+                  disabled={loading}
+                  className="w-full bg-red-600 hover:bg-red-700"
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  {loading ? 'Entrando...' : 'Login Administrador'}
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Acesso rápido para administradores
+                </p>
+              </div>
+
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Ou continue com
+                  </span>
+                </div>
+              </div>
+
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login">Entrar</TabsTrigger>
