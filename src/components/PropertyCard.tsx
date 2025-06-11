@@ -8,14 +8,14 @@ import { Link } from "react-router-dom";
 
 interface PropertyCardProps {
   property: {
-    id: number;
+    id: string;
     title: string;
     location: string;
-    price: string;
-    bedrooms: number;
-    bathrooms: number;
-    area: string;
-    image: string;
+    price: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    area?: string;
+    image_url?: string;
     featured: boolean;
   };
 }
@@ -27,7 +27,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
     <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <div className="relative overflow-hidden">
         <img
-          src={property.image}
+          src={property.image_url || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=500&h=300&fit=crop"}
           alt={property.title}
           className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -63,7 +63,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
         {/* Price Overlay */}
         <div className="absolute bottom-3 left-3">
           <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-lg font-bold">
-            {property.price}
+            R$ {property.price.toLocaleString('pt-BR')}
           </div>
         </div>
       </div>
@@ -79,15 +79,15 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
         <div className="flex justify-between items-center text-sm text-gray-600">
           <div className="flex items-center gap-1">
             <Bed className="h-4 w-4" />
-            <span>{property.bedrooms}</span>
+            <span>{property.bedrooms || '-'}</span>
           </div>
           <div className="flex items-center gap-1">
             <Bath className="h-4 w-4" />
-            <span>{property.bathrooms}</span>
+            <span>{property.bathrooms || '-'}</span>
           </div>
           <div className="flex items-center gap-1">
             <Ruler className="h-4 w-4" />
-            <span>{property.area}</span>
+            <span>{property.area || '-'}</span>
           </div>
         </div>
       </CardContent>
@@ -99,7 +99,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
           </Link>
         </Button>
         <Button className="flex-1 bg-green-600 hover:bg-green-700" asChild>
-          <Link to="/agendar-visita">
+          <Link to={`/agendar-visita/${property.id}`}>
             <Calendar className="h-4 w-4 mr-2" />
             Agendar Visita
           </Link>

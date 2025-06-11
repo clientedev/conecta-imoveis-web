@@ -1,74 +1,83 @@
 
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { Send, Shield } from "lucide-react";
-import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Send } from 'lucide-react';
 
 export const LeadForm = () => {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    propertyType: "",
-    location: "",
-    priceRange: "",
-    observations: ""
+    name: '',
+    email: '',
+    phone: '',
+    property_type: '',
+    location_interest: '',
+    price_range: '',
+    observations: ''
   });
+  
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setLoading(true);
 
     try {
-      // Simular envio do formulário
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const { error } = await supabase
+        .from('leads')
+        .insert([formData]);
+
+      if (error) throw error;
+
       toast({
-        title: "Sucesso!",
-        description: "Sua solicitação foi enviada. Entraremos em contato em breve!",
+        title: "Formulário enviado com sucesso!",
+        description: "Entraremos em contato em breve."
       });
 
       // Reset form
       setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        propertyType: "",
-        location: "",
-        priceRange: "",
-        observations: ""
+        name: '',
+        email: '',
+        phone: '',
+        property_type: '',
+        location_interest: '',
+        price_range: '',
+        observations: ''
       });
+
     } catch (error) {
+      console.error('Error submitting lead:', error);
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao enviar sua solicitação. Tente novamente.",
-        variant: "destructive",
+        title: "Erro ao enviar formulário",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive"
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-lg">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl text-blue-600">Encontre Seu Imóvel Ideal</CardTitle>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Encontre o Imóvel dos Seus Sonhos</CardTitle>
         <CardDescription>
-          Preencha o formulário e nossa equipe entrará em contato com as melhores opções
+          Preencha o formulário e nossa equipe entrará em contato com as melhores opções para você.
         </CardDescription>
       </CardHeader>
-      
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -76,22 +85,20 @@ export const LeadForm = () => {
               <Label htmlFor="name">Nome Completo *</Label>
               <Input
                 id="name"
-                type="text"
-                placeholder="Seu nome completo"
                 value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Seu nome completo"
                 required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone/WhatsApp *</Label>
+              <Label htmlFor="phone">Telefone *</Label>
               <Input
                 id="phone"
-                type="tel"
-                placeholder="(11) 99999-9999"
                 value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="(11) 99999-9999"
                 required
               />
             </div>
@@ -102,17 +109,17 @@ export const LeadForm = () => {
             <Input
               id="email"
               type="email"
-              placeholder="seu@email.com"
               value={formData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="seu@email.com"
               required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="propertyType">Tipo de Imóvel</Label>
-              <Select value={formData.propertyType} onValueChange={(value) => handleInputChange("propertyType", value)}>
+              <Label htmlFor="property_type">Tipo de Imóvel</Label>
+              <Select value={formData.property_type} onValueChange={(value) => handleInputChange('property_type', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
@@ -120,71 +127,57 @@ export const LeadForm = () => {
                   <SelectItem value="apartamento">Apartamento</SelectItem>
                   <SelectItem value="casa">Casa</SelectItem>
                   <SelectItem value="cobertura">Cobertura</SelectItem>
-                  <SelectItem value="terreno">Terreno</SelectItem>
+                  <SelectItem value="studio">Studio</SelectItem>
                   <SelectItem value="comercial">Comercial</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">Localização de Interesse</Label>
-              <Input
-                id="location"
-                type="text"
-                placeholder="Bairro, região..."
-                value={formData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
-              />
+              <Label htmlFor="price_range">Faixa de Valor</Label>
+              <Select value={formData.price_range} onValueChange={(value) => handleInputChange('price_range', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a faixa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ate-500k">Até R$ 500.000</SelectItem>
+                  <SelectItem value="500k-1m">R$ 500.000 - R$ 1.000.000</SelectItem>
+                  <SelectItem value="1m-1.5m">R$ 1.000.000 - R$ 1.500.000</SelectItem>
+                  <SelectItem value="1.5m-2m">R$ 1.500.000 - R$ 2.000.000</SelectItem>
+                  <SelectItem value="acima-2m">Acima de R$ 2.000.000</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="priceRange">Faixa de Valor</Label>
-            <Select value={formData.priceRange} onValueChange={(value) => handleInputChange("priceRange", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a faixa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ate-300k">Até R$ 300.000</SelectItem>
-                <SelectItem value="300k-500k">R$ 300.000 - R$ 500.000</SelectItem>
-                <SelectItem value="500k-800k">R$ 500.000 - R$ 800.000</SelectItem>
-                <SelectItem value="800k-1m">R$ 800.000 - R$ 1.000.000</SelectItem>
-                <SelectItem value="1m-2m">R$ 1.000.000 - R$ 2.000.000</SelectItem>
-                <SelectItem value="acima-2m">Acima de R$ 2.000.000</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="location_interest">Localização de Interesse</Label>
+            <Input
+              id="location_interest"
+              value={formData.location_interest}
+              onChange={(e) => handleInputChange('location_interest', e.target.value)}
+              placeholder="Ex: Vila Madalena, Centro, Moema..."
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="observations">Observações</Label>
             <Textarea
               id="observations"
-              placeholder="Conte-nos mais sobre o que procura..."
               value={formData.observations}
-              onChange={(e) => handleInputChange("observations", e.target.value)}
+              onChange={(e) => handleInputChange('observations', e.target.value)}
+              placeholder="Conte-nos mais sobre o que você procura..."
               rows={4}
             />
           </div>
 
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <Shield className="h-4 w-4" />
-            <span>Seus dados estão protegidos conforme nossa política de privacidade</span>
-          </div>
-
           <Button 
             type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
-            disabled={isSubmitting}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
           >
-            {isSubmitting ? (
-              "Enviando..."
-            ) : (
-              <>
-                <Send className="h-5 w-5 mr-2" />
-                Encontrar Meu Imóvel
-              </>
-            )}
+            <Send className="h-4 w-4 mr-2" />
+            {loading ? 'Enviando...' : 'Enviar Formulário'}
           </Button>
         </form>
       </CardContent>
