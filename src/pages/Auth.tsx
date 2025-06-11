@@ -22,12 +22,36 @@ const Auth = () => {
     phone: '' 
   });
   
-  const { signIn, signUp, profile } = useAuth();
+  const { signIn, signUp, user, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   
   const isCorretorLogin = location.pathname === '/corretor/login';
+
+  const waitForProfileAndRedirect = () => {
+    const checkProfile = () => {
+      console.log('Checking profile for redirect...', profile);
+      
+      if (profile) {
+        console.log('Profile found, redirecting based on user type:', profile.user_type);
+        
+        if (profile.user_type === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (profile.user_type === 'broker' || isCorretorLogin) {
+          navigate('/corretor/dashboard');
+        } else {
+          navigate('/cliente/dashboard');
+        }
+      } else if (user) {
+        // Profile not loaded yet, wait a bit more
+        console.log('User exists but profile not loaded, waiting...');
+        setTimeout(checkProfile, 500);
+      }
+    };
+    
+    checkProfile();
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +61,7 @@ const Auth = () => {
       const { error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
+        console.error('Login error:', error);
         toast({
           title: "Erro no login",
           description: error.message,
@@ -48,18 +73,13 @@ const Auth = () => {
           description: "Redirecionando..."
         });
         
-        // Wait a bit for profile to load and then redirect based on user type
+        // Wait for profile to load and then redirect
         setTimeout(() => {
-          if (profile?.user_type === 'admin') {
-            navigate('/admin/dashboard');
-          } else if (profile?.user_type === 'broker' || isCorretorLogin) {
-            navigate('/corretor/dashboard');
-          } else {
-            navigate('/cliente/dashboard');
-          }
+          waitForProfileAndRedirect();
         }, 1000);
       }
     } catch (error) {
+      console.error('Login exception:', error);
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado",
@@ -83,6 +103,7 @@ const Auth = () => {
       );
       
       if (error) {
+        console.error('Signup error:', error);
         toast({
           title: "Erro no cadastro",
           description: error.message,
@@ -91,16 +112,16 @@ const Auth = () => {
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Você já pode fazer login."
+          description: "Redirecionando..."
         });
         
-        // Auto login after signup
-        setTimeout(async () => {
-          await signIn(signupData.email, signupData.password);
-          navigate('/cliente/dashboard');
-        }, 1000);
+        // Wait for profile to load and then redirect
+        setTimeout(() => {
+          waitForProfileAndRedirect();
+        }, 2000); // Longer wait for signup as profile needs to be created
       }
     } catch (error) {
+      console.error('Signup exception:', error);
       toast({
         title: "Erro no cadastro",
         description: "Ocorreu um erro inesperado",
@@ -117,6 +138,7 @@ const Auth = () => {
       const { error } = await signIn('admin@admin.com', '47316854v8');
       
       if (error) {
+        console.error('Admin login error:', error);
         toast({
           title: "Erro no login de admin",
           description: error.message,
@@ -127,9 +149,13 @@ const Auth = () => {
           title: "Login de admin realizado!",
           description: "Redirecionando para área administrativa..."
         });
-        navigate('/admin/dashboard');
+        
+        setTimeout(() => {
+          navigate('/admin/dashboard');
+        }, 1000);
       }
     } catch (error) {
+      console.error('Admin login exception:', error);
       toast({
         title: "Erro no login de admin",
         description: "Ocorreu um erro inesperado",

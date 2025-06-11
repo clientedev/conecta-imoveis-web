@@ -57,12 +57,17 @@ const AdminDashboard = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('AdminDashboard - user:', user);
+    console.log('AdminDashboard - profile:', profile);
+    
     if (!user) {
+      console.log('No user, redirecting to login');
       navigate('/login');
       return;
     }
 
     if (profile && profile.user_type !== 'admin') {
+      console.log('User is not admin, redirecting');
       toast({
         title: "Acesso negado",
         description: "Você não tem permissão para acessar esta área",
@@ -77,13 +82,19 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
+      console.log('Fetching admin data...');
+      
       // Fetch leads
       const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (leadsError) throw leadsError;
+      if (leadsError) {
+        console.error('Error fetching leads:', leadsError);
+        throw leadsError;
+      }
+      console.log('Leads fetched:', leadsData);
       setLeads(leadsData || []);
 
       // Fetch appointments
@@ -105,17 +116,32 @@ const AdminDashboard = () => {
         `)
         .order('appointment_date', { ascending: false });
 
-      if (appointmentsError) throw appointmentsError;
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
+        throw appointmentsError;
+      }
+      console.log('Appointments fetched:', appointmentsData);
       setAppointments(appointmentsData || []);
 
-      // Fetch all users
+      // Fetch all users with type casting
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (usersError) throw usersError;
-      setUsers(usersData || []);
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        throw usersError;
+      }
+      console.log('Users fetched:', usersData);
+      
+      // Type cast the user_type to the expected union type
+      const typedUsers = (usersData || []).map(user => ({
+        ...user,
+        user_type: user.user_type as 'client' | 'broker' | 'admin'
+      }));
+      
+      setUsers(typedUsers);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
