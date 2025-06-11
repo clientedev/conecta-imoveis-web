@@ -55,7 +55,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .eq('id', session.user.id)
               .single();
             
-            setProfile(profileData);
+            if (profileData) {
+              // Type cast user_type to the expected union type
+              setProfile({
+                ...profileData,
+                user_type: profileData.user_type as 'client' | 'broker' | 'admin'
+              });
+            }
           }, 0);
         } else {
           setProfile(null);
