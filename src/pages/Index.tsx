@@ -100,7 +100,7 @@ const Index = () => {
                     />
                   </div>
                 </div>
-                <Button style={{ backgroundColor: '#1d2846' }} className="text-white">
+                <Button style={{ backgroundColor: '#1d2846' }} className="text-black">
                   <Search className="h-4 w-4 mr-2" />
                   Buscar
                 </Button>
