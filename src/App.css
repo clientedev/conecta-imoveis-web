@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -39,4 +40,45 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Custom color overrides */
+.bg-blue-600 {
+  background-color: #1d2846 !important;
+}
+
+.bg-blue-500 {
+  background-color: #1d2846 !important;
+}
+
+.hover\:bg-blue-700:hover {
+  background-color: #0f172a !important;
+}
+
+.hover\:bg-blue-600:hover {
+  background-color: #0f172a !important;
+}
+
+.text-blue-600 {
+  color: #1d2846 !important;
+}
+
+.border-blue-600 {
+  border-color: #1d2846 !important;
+}
+
+.bg-yellow-500 {
+  background-color: #949492 !important;
+}
+
+.hover\:bg-yellow-600:hover {
+  background-color: #6b7280 !important;
+}
+
+.bg-white {
+  background-color: #f3f4f5 !important;
+}
+
+body {
+  background-color: #f3f4f5 !important;
 }

@@ -9,6 +9,7 @@ interface Profile {
   phone?: string;
   user_type: 'client' | 'broker' | 'admin';
   is_active: boolean;
+  is_admin?: boolean;
 }
 
 interface AuthContextType {
@@ -73,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } catch (err) {
               console.error('Error in profile fetch:', err);
             }
-          }, 500); // Increased delay to ensure profile is created
+          }, 500);
         } else {
           console.log('User logged out');
           setProfile(null);
@@ -103,8 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: {
           full_name: fullName,
           phone: phone
-        },
-        emailRedirectTo: undefined // Disable email confirmation
+        }
       }
     });
     

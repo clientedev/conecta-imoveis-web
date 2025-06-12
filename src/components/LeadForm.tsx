@@ -71,9 +71,9 @@ export const LeadForm = () => {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto bg-white">
       <CardHeader>
-        <CardTitle>Encontre o Imóvel dos Seus Sonhos</CardTitle>
+        <CardTitle style={{ color: '#1d2846' }}>Encontre o Imóvel dos Seus Sonhos</CardTitle>
         <CardDescription>
           Preencha o formulário e nossa equipe entrará em contato com as melhores opções para você.
         </CardDescription>
@@ -173,7 +173,8 @@ export const LeadForm = () => {
 
           <Button 
             type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full"
+            style={{ backgroundColor: '#1d2846' }}
             disabled={loading}
           >
             <Send className="h-4 w-4 mr-2" />

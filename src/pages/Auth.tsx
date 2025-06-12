@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { LogIn, UserPlus, Shield } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ const Auth = () => {
       if (profile) {
         console.log('Profile found, redirecting based on user type:', profile.user_type);
         
-        if (profile.user_type === 'admin') {
+        if (profile.is_admin || profile.user_type === 'admin') {
           navigate('/admin/dashboard');
         } else if (profile.user_type === 'broker' || isCorretorLogin) {
           navigate('/corretor/dashboard');
@@ -118,7 +118,7 @@ const Auth = () => {
         // Wait for profile to load and then redirect
         setTimeout(() => {
           waitForProfileAndRedirect();
-        }, 2000); // Longer wait for signup as profile needs to be created
+        }, 2000);
       }
     } catch (error) {
       console.error('Signup exception:', error);
@@ -132,49 +132,15 @@ const Auth = () => {
     }
   };
 
-  const handleAdminLogin = async () => {
-    setLoading(true);
-    try {
-      const { error } = await signIn('admin@admin.com', '47316854v8');
-      
-      if (error) {
-        console.error('Admin login error:', error);
-        toast({
-          title: "Erro no login de admin",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Login de admin realizado!",
-          description: "Redirecionando para área administrativa..."
-        });
-        
-        setTimeout(() => {
-          navigate('/admin/dashboard');
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Admin login exception:', error);
-      toast({
-        title: "Erro no login de admin",
-        description: "Ocorreu um erro inesperado",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#f3f4f5' }}>
       <Header />
       
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-md mx-auto">
-          <Card>
+          <Card className="bg-white">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">
+              <CardTitle className="text-2xl" style={{ color: '#1d2846' }}>
                 {isCorretorLogin ? 'Área do Corretor' : 'Área do Cliente'}
               </CardTitle>
               <CardDescription>
@@ -186,32 +152,6 @@ const Auth = () => {
             </CardHeader>
             
             <CardContent>
-              {/* Admin Login Button */}
-              <div className="mb-6 text-center">
-                <Button 
-                  onClick={handleAdminLogin}
-                  disabled={loading}
-                  className="w-full bg-red-600 hover:bg-red-700"
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  {loading ? 'Entrando...' : 'Login Administrador'}
-                </Button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Acesso rápido para administradores
-                </p>
-              </div>
-
-              <div className="relative mb-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Ou continue com
-                  </span>
-                </div>
-              </div>
-
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -242,7 +182,12 @@ const Auth = () => {
                       />
                     </div>
                     
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      style={{ backgroundColor: '#1d2846' }}
+                      disabled={loading}
+                    >
                       <LogIn className="h-4 w-4 mr-2" />
                       {loading ? 'Entrando...' : 'Entrar'}
                     </Button>
@@ -297,7 +242,12 @@ const Auth = () => {
                         />
                       </div>
                       
-                      <Button type="submit" className="w-full" disabled={loading}>
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        style={{ backgroundColor: '#1d2846' }}
+                        disabled={loading}
+                      >
                         <UserPlus className="h-4 w-4 mr-2" />
                         {loading ? 'Cadastrando...' : 'Cadastrar'}
                       </Button>

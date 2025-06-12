@@ -24,7 +24,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
 
   return (
-    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
       <div className="relative overflow-hidden">
         <img
           src={property.image_url || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=500&h=300&fit=crop"}
@@ -35,7 +35,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
         {/* Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
           {property.featured && (
-            <Badge className="bg-yellow-500 text-black hover:bg-yellow-600">
+            <Badge style={{ backgroundColor: '#949492', color: 'white' }}>
               Destaque
             </Badge>
           )}
@@ -62,14 +62,14 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
 
         {/* Price Overlay */}
         <div className="absolute bottom-3 left-3">
-          <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-lg font-bold">
+          <div className="text-white px-3 py-1 rounded-full text-lg font-bold" style={{ backgroundColor: '#1d2846' }}>
             R$ {property.price.toLocaleString('pt-BR')}
           </div>
         </div>
       </div>
 
       <CardContent className="p-4">
-        <h3 className="font-semibold text-lg mb-2 line-clamp-2">{property.title}</h3>
+        <h3 className="font-semibold text-lg mb-2 line-clamp-2" style={{ color: '#1d2846' }}>{property.title}</h3>
         
         <div className="flex items-center text-gray-600 mb-3">
           <MapPin className="h-4 w-4 mr-1" />

@@ -6,8 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Users, LogOut, Mail, Phone, Building, Shield, UserCheck, UserX } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar, Users, LogOut, Mail, Phone, Building, Plus, Edit, Trash2, UserCheck, UserX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,51 +27,56 @@ interface Lead {
   created_at: string;
 }
 
-interface Appointment {
+interface Property {
   id: string;
-  appointment_date: string;
-  status: string;
-  notes?: string;
-  profiles: {
-    full_name: string;
-    phone?: string;
-  };
-  properties: {
-    title: string;
-    location: string;
-  };
+  title: string;
+  description?: string;
+  location: string;
+  price: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: string;
+  property_type?: string;
+  image_url?: string;
+  featured: boolean;
+  is_available: boolean;
 }
 
-interface Profile {
+interface User {
   id: string;
   full_name?: string;
-  phone?: string;
-  user_type: 'client' | 'broker' | 'admin';
+  email?: string;
+  user_type: string;
   is_active: boolean;
+  created_at: string;
+}
+
+interface AdminEmail {
+  id: string;
+  email: string;
   created_at: string;
 }
 
 const AdminDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [adminEmails, setAdminEmails] = useState<AdminEmail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newProperty, setNewProperty] = useState<Partial<Property>>({});
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('AdminDashboard - user:', user);
-    console.log('AdminDashboard - profile:', profile);
-    
     if (!user) {
-      console.log('No user, redirecting to login');
       navigate('/login');
       return;
     }
 
-    if (profile && profile.user_type !== 'admin') {
-      console.log('User is not admin, redirecting');
+    if (profile && !profile.is_admin && profile.user_type !== 'admin') {
       toast({
         title: "Acesso negado",
         description: "Você não tem permissão para acessar esta área",
@@ -82,66 +91,42 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      console.log('Fetching admin data...');
-      
       // Fetch leads
       const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (leadsError) {
-        console.error('Error fetching leads:', leadsError);
-        throw leadsError;
-      }
-      console.log('Leads fetched:', leadsData);
+      if (leadsError) throw leadsError;
       setLeads(leadsData || []);
 
-      // Fetch appointments
-      const { data: appointmentsData, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          appointment_date,
-          status,
-          notes,
-          profiles (
-            full_name,
-            phone
-          ),
-          properties (
-            title,
-            location
-          )
-        `)
-        .order('appointment_date', { ascending: false });
-
-      if (appointmentsError) {
-        console.error('Error fetching appointments:', appointmentsError);
-        throw appointmentsError;
-      }
-      console.log('Appointments fetched:', appointmentsData);
-      setAppointments(appointmentsData || []);
-
-      // Fetch all users with type casting
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
+      // Fetch properties
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        throw usersError;
-      }
-      console.log('Users fetched:', usersData);
-      
-      // Type cast the user_type to the expected union type
-      const typedUsers = (usersData || []).map(user => ({
-        ...user,
-        user_type: user.user_type as 'client' | 'broker' | 'admin'
-      }));
-      
-      setUsers(typedUsers);
+      if (propertiesError) throw propertiesError;
+      setProperties(propertiesData || []);
+
+      // Fetch users
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, user_type, is_active, created_at')
+        .order('created_at', { ascending: false });
+
+      if (usersError) throw usersError;
+      setUsers(usersData || []);
+
+      // Fetch admin emails
+      const { data: adminEmailsData, error: adminEmailsError } = await supabase
+        .from('admin_emails')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (adminEmailsError) throw adminEmailsError;
+      setAdminEmails(adminEmailsData || []);
+
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -159,23 +144,74 @@ const AdminDashboard = () => {
     navigate('/');
   };
 
-  const updateUserType = async (userId: string, newUserType: 'client' | 'broker' | 'admin') => {
+  const saveProperty = async () => {
+    try {
+      if (editingProperty) {
+        // Update existing property
+        const { error } = await supabase
+          .from('properties')
+          .update(newProperty)
+          .eq('id', editingProperty.id);
+
+        if (error) throw error;
+        toast({ title: "Imóvel atualizado com sucesso!" });
+      } else {
+        // Create new property
+        const { error } = await supabase
+          .from('properties')
+          .insert([newProperty]);
+
+        if (error) throw error;
+        toast({ title: "Imóvel criado com sucesso!" });
+      }
+
+      setNewProperty({});
+      setEditingProperty(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error saving property:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o imóvel",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteProperty = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('profiles')
-        .update({ user_type: newUserType })
-        .eq('id', userId);
+        .from('properties')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast({ title: "Imóvel removido com sucesso!" });
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o imóvel",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleUserType = async (userId: string, currentType: string) => {
+    try {
+      const newType = currentType === 'broker' ? 'client' : 'broker';
+      
+      const { error } = await supabase.rpc('promote_to_broker', {
+        _user_id: userId
+      });
 
       if (error) throw error;
 
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, user_type: newUserType } : user
-      ));
-
-      toast({
-        title: "Sucesso",
-        description: `Usuário promovido para ${newUserType}`,
+      toast({ 
+        title: newType === 'broker' ? "Usuário promovido a corretor!" : "Usuário removido de corretor!"
       });
+      fetchData();
     } catch (error) {
       console.error('Error updating user type:', error);
       toast({
@@ -186,23 +222,16 @@ const AdminDashboard = () => {
     }
   };
 
-  const toggleUserStatus = async (userId: string, isActive: boolean) => {
+  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ is_active: !isActive })
+        .update({ is_active: !currentStatus })
         .eq('id', userId);
 
       if (error) throw error;
-
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_active: !isActive } : user
-      ));
-
-      toast({
-        title: "Sucesso",
-        description: `Usuário ${!isActive ? 'ativado' : 'desativado'}`,
-      });
+      toast({ title: !currentStatus ? "Usuário ativado!" : "Usuário desativado!" });
+      fetchData();
     } catch (error) {
       console.error('Error updating user status:', error);
       toast({
@@ -213,49 +242,53 @@ const AdminDashboard = () => {
     }
   };
 
-  const getUserTypeColor = (userType: string) => {
-    switch (userType) {
-      case 'admin': return 'bg-red-500';
-      case 'broker': return 'bg-blue-500';
-      case 'client': return 'bg-green-500';
-      default: return 'bg-gray-500';
+  const addAdminEmail = async () => {
+    if (!newAdminEmail) return;
+
+    try {
+      const { error } = await supabase
+        .from('admin_emails')
+        .insert([{ email: newAdminEmail }]);
+
+      if (error) throw error;
+      toast({ title: "Email de administrador adicionado!" });
+      setNewAdminEmail('');
+      fetchData();
+    } catch (error) {
+      console.error('Error adding admin email:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar o email",
+        variant: "destructive"
+      });
     }
   };
 
-  const getUserTypeText = (userType: string) => {
-    switch (userType) {
-      case 'admin': return 'Admin';
-      case 'broker': return 'Corretor';
-      case 'client': return 'Cliente';
-      default: return userType;
-    }
-  };
+  const removeAdminEmail = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('admin_emails')
+        .delete()
+        .eq('id', id);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-green-500';
-      case 'pending': return 'bg-yellow-500';
-      case 'cancelled': return 'bg-red-500';
-      case 'completed': return 'bg-blue-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'Confirmado';
-      case 'pending': return 'Pendente';
-      case 'cancelled': return 'Cancelado';
-      case 'completed': return 'Concluído';
-      default: return status;
+      if (error) throw error;
+      toast({ title: "Email de administrador removido!" });
+      fetchData();
+    } catch (error) {
+      console.error('Error removing admin email:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o email",
+        variant: "destructive"
+      });
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f3f4f5' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto" style={{ borderColor: '#1d2846' }}></div>
           <p className="mt-4 text-gray-600">Carregando...</p>
         </div>
       </div>
@@ -263,15 +296,12 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#f3f4f5' }}>
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                <Shield className="h-6 w-6 mr-2 text-red-600" />
-                Painel do Administrador
-              </h1>
+              <h1 className="text-2xl font-bold" style={{ color: '#1d2846' }}>Painel Administrativo</h1>
               <p className="text-gray-600">Bem-vindo, {profile?.full_name || user?.email}</p>
             </div>
             <div className="flex items-center gap-4">
@@ -290,149 +320,358 @@ const AdminDashboard = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Corretores</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {users.filter(u => u.user_type === 'broker').length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
+          <Card className="bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{leads.length}</div>
+              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>{leads.length}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Agendamentos</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Imóveis</CardTitle>
+              <Building className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{appointments.length}</div>
+              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>{properties.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Usuários</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>{users.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Corretores</CardTitle>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>
+                {users.filter(u => u.user_type === 'broker').length}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="users">Gerenciar Usuários</TabsTrigger>
+        <Tabs defaultValue="properties" className="space-y-4">
+          <TabsList className="bg-white">
+            <TabsTrigger value="properties">Imóveis</TabsTrigger>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="leads">Leads</TabsTrigger>
-            <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+            <TabsTrigger value="admins">Administradores</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users">
-            <Card>
+          <TabsContent value="properties">
+            <Card className="bg-white">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
+                      <Building className="h-5 w-5 mr-2" />
+                      Gerenciar Imóveis
+                    </CardTitle>
+                    <CardDescription>
+                      Adicione, edite ou remova imóveis do site
+                    </CardDescription>
+                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button style={{ backgroundColor: '#1d2846' }}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Imóvel
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl bg-white">
+                      <DialogHeader>
+                        <DialogTitle style={{ color: '#1d2846' }}>
+                          {editingProperty ? 'Editar Imóvel' : 'Novo Imóvel'}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Preencha os dados do imóvel
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Título *</Label>
+                          <Input
+                            id="title"
+                            value={newProperty.title || ''}
+                            onChange={(e) => setNewProperty({...newProperty, title: e.target.value})}
+                            placeholder="Ex: Apartamento Moderno no Centro"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="location">Localização *</Label>
+                          <Input
+                            id="location"
+                            value={newProperty.location || ''}
+                            onChange={(e) => setNewProperty({...newProperty, location: e.target.value})}
+                            placeholder="Ex: Centro, São Paulo"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="price">Preço (R$) *</Label>
+                          <Input
+                            id="price"
+                            type="number"
+                            value={newProperty.price || ''}
+                            onChange={(e) => setNewProperty({...newProperty, price: Number(e.target.value)})}
+                            placeholder="850000"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="property_type">Tipo</Label>
+                          <Select 
+                            value={newProperty.property_type || ''} 
+                            onValueChange={(value) => setNewProperty({...newProperty, property_type: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="apartamento">Apartamento</SelectItem>
+                              <SelectItem value="casa">Casa</SelectItem>
+                              <SelectItem value="cobertura">Cobertura</SelectItem>
+                              <SelectItem value="studio">Studio</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="bedrooms">Quartos</Label>
+                          <Input
+                            id="bedrooms"
+                            type="number"
+                            value={newProperty.bedrooms || ''}
+                            onChange={(e) => setNewProperty({...newProperty, bedrooms: Number(e.target.value)})}
+                            placeholder="3"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="bathrooms">Banheiros</Label>
+                          <Input
+                            id="bathrooms"
+                            type="number"
+                            value={newProperty.bathrooms || ''}
+                            onChange={(e) => setNewProperty({...newProperty, bathrooms: Number(e.target.value)})}
+                            placeholder="2"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="area">Área</Label>
+                          <Input
+                            id="area"
+                            value={newProperty.area || ''}
+                            onChange={(e) => setNewProperty({...newProperty, area: e.target.value})}
+                            placeholder="95m²"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="image_url">URL da Imagem</Label>
+                          <Input
+                            id="image_url"
+                            value={newProperty.image_url || ''}
+                            onChange={(e) => setNewProperty({...newProperty, image_url: e.target.value})}
+                            placeholder="https://exemplo.com/imagem.jpg"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Descrição</Label>
+                        <Textarea
+                          id="description"
+                          value={newProperty.description || ''}
+                          onChange={(e) => setNewProperty({...newProperty, description: e.target.value})}
+                          placeholder="Descrição detalhada do imóvel..."
+                          rows={3}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={newProperty.featured || false}
+                            onChange={(e) => setNewProperty({...newProperty, featured: e.target.checked})}
+                          />
+                          <span>Imóvel em destaque</span>
+                        </label>
+                        
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={newProperty.is_available !== false}
+                            onChange={(e) => setNewProperty({...newProperty, is_available: e.target.checked})}
+                          />
+                          <span>Disponível</span>
+                        </label>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => {
+                          setNewProperty({});
+                          setEditingProperty(null);
+                        }}>
+                          Cancelar
+                        </Button>
+                        <Button 
+                          onClick={saveProperty}
+                          style={{ backgroundColor: '#1d2846' }}
+                        >
+                          {editingProperty ? 'Atualizar' : 'Criar'} Imóvel
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {properties.map((property) => (
+                    <div key={property.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-semibold text-lg" style={{ color: '#1d2846' }}>{property.title}</h3>
+                          <p className="text-gray-600">{property.location}</p>
+                          <p className="text-lg font-bold" style={{ color: '#1d2846' }}>
+                            R$ {property.price.toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          {property.featured && <Badge style={{ backgroundColor: '#949492' }}>Destaque</Badge>}
+                          <Badge variant={property.is_available ? "default" : "secondary"}>
+                            {property.is_available ? 'Disponível' : 'Indisponível'}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm text-gray-600">
+                          {property.bedrooms}q • {property.bathrooms}b • {property.area}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setEditingProperty(property);
+                              setNewProperty(property);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => deleteProperty(property.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <Card className="bg-white">
+              <CardHeader>
+                <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
                   <Users className="h-5 w-5 mr-2" />
                   Gerenciar Usuários
                 </CardTitle>
                 <CardDescription>
-                  Gerencie tipos de usuário e permissões
+                  Promova usuários a corretores ou desative contas
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.full_name || 'N/A'}</TableCell>
-                        <TableCell>{user.id}</TableCell>
-                        <TableCell>{user.phone || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge className={getUserTypeColor(user.user_type)}>
-                            {getUserTypeText(user.user_type)}
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <div key={user.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-semibold" style={{ color: '#1d2846' }}>{user.full_name || 'Sem nome'}</h3>
+                          <p className="text-sm text-gray-600">
+                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={user.user_type === 'broker' ? 'default' : 'secondary'}>
+                            {user.user_type === 'broker' ? 'Corretor' : 'Cliente'}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.is_active ? "default" : "secondary"}>
+                          <Badge variant={user.is_active ? 'default' : 'destructive'}>
                             {user.is_active ? 'Ativo' : 'Inativo'}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {user.user_type === 'client' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateUserType(user.id, 'broker')}
-                              >
-                                <UserCheck className="h-4 w-4 mr-1" />
-                                Promover a Corretor
-                              </Button>
-                            )}
-                            {user.user_type === 'broker' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateUserType(user.id, 'client')}
-                              >
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleUserType(user.id, user.user_type)}
+                          >
+                            {user.user_type === 'broker' ? (
+                              <>
                                 <UserX className="h-4 w-4 mr-1" />
                                 Remover Corretor
-                              </Button>
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="h-4 w-4 mr-1" />
+                                Promover a Corretor
+                              </>
                             )}
-                            <Button
-                              size="sm"
-                              variant={user.is_active ? "destructive" : "default"}
-                              onClick={() => toggleUserStatus(user.id, user.is_active)}
-                            >
-                              {user.is_active ? 'Desativar' : 'Ativar'}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={user.is_active ? 'destructive' : 'default'}
+                            onClick={() => toggleUserStatus(user.id, user.is_active)}
+                          >
+                            {user.is_active ? 'Desativar' : 'Ativar'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="leads">
-            <Card>
+            <Card className="bg-white">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
+                <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
+                  <Mail className="h-5 w-5 mr-2" />
                   Leads Recebidos
                 </CardTitle>
                 <CardDescription>
-                  Todos os leads capturados através do site
+                  Leads capturados através do formulário do site
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {leads.length === 0 ? (
                   <div className="text-center py-8">
-                    <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <Mail className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                     <p className="text-gray-600">Nenhum lead encontrado</p>
                   </div>
                 ) : (
@@ -441,7 +680,7 @@ const AdminDashboard = () => {
                       <div key={lead.id} className="border rounded-lg p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-semibold text-lg">{lead.name}</h3>
+                            <h3 className="font-semibold text-lg" style={{ color: '#1d2846' }}>{lead.name}</h3>
                             <p className="text-sm text-gray-500">
                               {new Date(lead.created_at).toLocaleDateString('pt-BR', {
                                 day: '2-digit',
@@ -452,7 +691,9 @@ const AdminDashboard = () => {
                               })}
                             </p>
                           </div>
-                          <Badge variant="secondary">Lead</Badge>
+                          <Badge variant="secondary" style={{ backgroundColor: '#949492', color: 'white' }}>
+                            Novo Lead
+                          </Badge>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
@@ -489,6 +730,24 @@ const AdminDashboard = () => {
                             <strong>Observações:</strong> {lead.observations}
                           </div>
                         )}
+                        
+                        <div className="flex gap-2 mt-4">
+                          <Button size="sm" onClick={() => window.open(`mailto:${lead.email}`)}>
+                            <Mail className="h-4 w-4 mr-1" />
+                            Email
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => window.open(`tel:${lead.phone}`)}>
+                            <Phone className="h-4 w-4 mr-1" />
+                            Ligar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => window.open(`https://wa.me/55${lead.phone.replace(/\D/g, '')}`, '_blank')}
+                          >
+                            WhatsApp
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -497,61 +756,44 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="appointments">
-            <Card>
+          <TabsContent value="admins">
+            <Card className="bg-white">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2" />
-                  Todos os Agendamentos
+                <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
+                  <UserCheck className="h-5 w-5 mr-2" />
+                  Emails de Administradores
                 </CardTitle>
                 <CardDescription>
-                  Todas as visitas agendadas pelos clientes
+                  Gerencie quais emails têm acesso administrativo
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {appointments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Nenhum agendamento encontrado</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {appointments.map((appointment) => (
-                      <div key={appointment.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-semibold">{appointment.properties.title}</h3>
-                            <p className="text-gray-600">{appointment.properties.location}</p>
-                            <p className="text-sm text-gray-500">
-                              Cliente: {appointment.profiles.full_name}
-                              {appointment.profiles.phone && ` - ${appointment.profiles.phone}`}
-                            </p>
-                          </div>
-                          <Badge className={getStatusColor(appointment.status)}>
-                            {getStatusText(appointment.status)}
-                          </Badge>
-                        </div>
-                        
-                        <div className="mb-3">
-                          <strong>Data e hora:</strong> {' '}
-                          {new Date(appointment.appointment_date).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                        
-                        {appointment.notes && (
-                          <div className="mb-3">
-                            <strong>Observações:</strong> {appointment.notes}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex gap-2 mb-4">
+                  <Input
+                    placeholder="email@exemplo.com"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                  />
+                  <Button onClick={addAdminEmail} style={{ backgroundColor: '#1d2846' }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  {adminEmails.map((adminEmail) => (
+                    <div key={adminEmail.id} className="flex justify-between items-center p-3 border rounded">
+                      <span>{adminEmail.email}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => removeAdminEmail(adminEmail.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
