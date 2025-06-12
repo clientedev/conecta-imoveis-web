@@ -146,6 +146,16 @@ const AdminDashboard = () => {
 
   const saveProperty = async () => {
     try {
+      // Validar campos obrigatórios
+      if (!newProperty.title || !newProperty.location || !newProperty.price) {
+        toast({
+          title: "Erro",
+          description: "Título, localização e preço são obrigatórios",
+          variant: "destructive"
+        });
+        return;
+      }
+
       if (editingProperty) {
         // Update existing property
         const { error } = await supabase
@@ -159,7 +169,7 @@ const AdminDashboard = () => {
         // Create new property
         const { error } = await supabase
           .from('properties')
-          .insert([newProperty]);
+          .insert(newProperty);
 
         if (error) throw error;
         toast({ title: "Imóvel criado com sucesso!" });
