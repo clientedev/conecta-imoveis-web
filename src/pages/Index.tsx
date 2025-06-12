@@ -76,16 +76,16 @@ const Index = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#f3f4f5' }}>
       <Header />
       
       <HeroSection />
       
       {/* Seção de Busca e Filtros */}
-      <section className="py-12 bg-gray-50">
+      <section className="py-12" style={{ backgroundColor: '#f3f4f5' }}>
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-8">Encontre Seu Imóvel Ideal</h2>
+            <h2 className="text-3xl font-bold text-center mb-8" style={{ color: '#1d2846' }}>Encontre Seu Imóvel Ideal</h2>
             
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
               <div className="flex flex-col md:flex-row gap-4 mb-4">
@@ -100,7 +100,7 @@ const Index = () => {
                     />
                   </div>
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button style={{ backgroundColor: '#1d2846' }} className="text-white">
                   <Search className="h-4 w-4 mr-2" />
                   Buscar
                 </Button>
@@ -116,13 +116,13 @@ const Index = () => {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">Imóveis Disponíveis</h2>
+            <h2 className="text-3xl font-bold" style={{ color: '#1d2846' }}>Imóveis Disponíveis</h2>
             <Badge variant="secondary">{filteredProperties.length} imóveis encontrados</Badge>
           </div>
           
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2" style={{ borderColor: '#1d2846' }}></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -138,7 +138,7 @@ const Index = () => {
       <AboutSection />
 
       {/* Formulário de Lead */}
-      <section className="py-12 bg-blue-50">
+      <section className="py-12" style={{ backgroundColor: '#f3f4f5' }}>
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
             <LeadForm />

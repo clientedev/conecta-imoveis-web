@@ -17,17 +17,19 @@ export const Header = () => {
   ];
 
   return (
-    <header className="bg-white shadow-lg sticky top-0 z-50">
+    <header style={{ backgroundColor: '#f3f4f5' }} className="shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="bg-blue-600 text-white p-2 rounded-lg">
-              <Building className="h-6 w-6" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="MM Conecta Logo" 
+              className="h-10 w-auto"
+            />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">MM Conecta</h1>
-              <p className="text-xs text-gray-600">Imóveis</p>
+              <h1 className="text-xl font-bold" style={{ color: '#1d2846' }}>MM Conecta</h1>
+              <p className="text-xs" style={{ color: '#1d2846' }}>Imóveis</p>
             </div>
           </Link>
 
@@ -37,7 +39,8 @@ export const Header = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className="text-gray-700 hover:text-blue-600 transition-colors duration-200 flex items-center space-x-1"
+                className="text-gray-700 transition-colors duration-200 flex items-center space-x-1"
+                style={{ color: '#1d2846' }}
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.name}</span>
@@ -53,7 +56,7 @@ export const Header = () => {
                 Cliente
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild style={{ backgroundColor: '#1d2846' }}>
               <Link to="/corretor/login">
                 Corretor
               </Link>
@@ -73,7 +76,8 @@ export const Header = () => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 p-2"
+                    className="flex items-center space-x-2 text-gray-700 transition-colors duration-200 p-2"
+                    style={{ color: '#1d2846' }}
                     onClick={() => setIsOpen(false)}
                   >
                     <item.icon className="h-5 w-5" />
@@ -87,7 +91,7 @@ export const Header = () => {
                       Área do Cliente
                     </Link>
                   </Button>
-                  <Button className="w-full" asChild>
+                  <Button className="w-full" asChild style={{ backgroundColor: '#1d2846' }}>
                     <Link to="/corretor/login">
                       Área do Corretor
                     </Link>

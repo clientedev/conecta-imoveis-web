@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -156,11 +155,26 @@ const AdminDashboard = () => {
         return;
       }
 
+      // Criar objeto com campos obrigatórios preenchidos
+      const propertyData = {
+        title: newProperty.title,
+        location: newProperty.location,
+        price: newProperty.price,
+        description: newProperty.description || null,
+        bedrooms: newProperty.bedrooms || null,
+        bathrooms: newProperty.bathrooms || null,
+        area: newProperty.area || null,
+        property_type: newProperty.property_type || null,
+        image_url: newProperty.image_url || null,
+        featured: newProperty.featured || false,
+        is_available: newProperty.is_available !== false
+      };
+
       if (editingProperty) {
         // Update existing property
         const { error } = await supabase
           .from('properties')
-          .update(newProperty)
+          .update(propertyData)
           .eq('id', editingProperty.id);
 
         if (error) throw error;
@@ -169,7 +183,7 @@ const AdminDashboard = () => {
         // Create new property
         const { error } = await supabase
           .from('properties')
-          .insert(newProperty);
+          .insert(propertyData);
 
         if (error) throw error;
         toast({ title: "Imóvel criado com sucesso!" });

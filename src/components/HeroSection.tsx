@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 
 export const HeroSection = () => {
   return (
-    <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white overflow-hidden">
+    <section className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1d2846 0%, #0f172a 100%)' }}>
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KPGcgZmlsbD0iIzAwMCIgZmlsbC1vcGFjaXR5PSIwLjAzIj4KPHBhdGggZD0ibTM2IDM0djEwaDEwdi0xMHptMC0ydjEyaDEydi0xMnoiLz4KPC9nPgo8L2c+Cjwvc3ZnPg==')] opacity-10"></div>
       
@@ -15,27 +15,27 @@ export const HeroSection = () => {
           {/* Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+              <Badge className="text-white border-white/30" style={{ backgroundColor: 'rgba(148, 148, 146, 0.2)' }}>
                 ✨ Corretora Especializada
               </Badge>
-              <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-4xl lg:text-6xl font-bold leading-tight text-white">
                 Encontre o
-                <span className="block text-yellow-300">Imóvel Perfeito</span>
+                <span className="block" style={{ color: '#949492' }}>Imóvel Perfeito</span>
                 para Você
               </h1>
-              <p className="text-xl text-blue-100 leading-relaxed">
+              <p className="text-xl leading-relaxed" style={{ color: '#f3f4f5' }}>
                 Na MM Conecta Imóveis, conectamos você ao seu próximo lar ou investimento. 
                 Com mais de 10 anos de experiência no mercado imobiliário.
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
+              <Button size="lg" style={{ backgroundColor: '#949492' }} className="text-white font-semibold hover:opacity-90">
                 <Home className="h-5 w-5 mr-2" />
                 Ver Imóveis
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-800">
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white" style={{ color: '#1d2846' }}>
                 <Link to="/contato" className="flex items-center">
                   Falar com Corretor
                 </Link>
@@ -45,16 +45,16 @@ export const HeroSection = () => {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/20">
               <div className="text-center">
-                <div className="text-2xl font-bold">500+</div>
-                <div className="text-blue-200 text-sm">Imóveis Vendidos</div>
+                <div className="text-2xl font-bold text-white">500+</div>
+                <div className="text-sm" style={{ color: '#f3f4f5' }}>Imóveis Vendidos</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">98%</div>
-                <div className="text-blue-200 text-sm">Satisfação</div>
+                <div className="text-2xl font-bold text-white">98%</div>
+                <div className="text-sm" style={{ color: '#f3f4f5' }}>Satisfação</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">10+</div>
-                <div className="text-blue-200 text-sm">Anos Experiência</div>
+                <div className="text-2xl font-bold text-white">10+</div>
+                <div className="text-sm" style={{ color: '#f3f4f5' }}>Anos Experiência</div>
               </div>
             </div>
           </div>
@@ -75,14 +75,14 @@ export const HeroSection = () => {
             </div>
             
             {/* Floating Cards */}
-            <div className="absolute -top-4 -left-4 bg-white text-gray-900 p-4 rounded-lg shadow-lg">
+            <div className="absolute -top-4 -left-4 p-4 rounded-lg shadow-lg" style={{ backgroundColor: '#f3f4f5', color: '#1d2846' }}>
               <TrendingUp className="h-8 w-8 text-green-500 mb-2" />
               <div className="text-sm font-semibold">+15%</div>
               <div className="text-xs text-gray-600">Valorização</div>
             </div>
             
-            <div className="absolute -bottom-4 -right-4 bg-white text-gray-900 p-4 rounded-lg shadow-lg">
-              <Users className="h-8 w-8 text-blue-500 mb-2" />
+            <div className="absolute -bottom-4 -right-4 p-4 rounded-lg shadow-lg" style={{ backgroundColor: '#f3f4f5', color: '#1d2846' }}>
+              <Users className="h-8 w-8 mb-2" style={{ color: '#1d2846' }} />
               <div className="text-sm font-semibold">1000+</div>
               <div className="text-xs text-gray-600">Clientes</div>
             </div>
