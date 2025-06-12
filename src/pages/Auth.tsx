@@ -22,22 +22,12 @@ const Auth = () => {
     phone: '' 
   });
   
-  const { signIn, signUp, user, profile } = useAuth();
+  const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   
   const isCorretorLogin = location.pathname === '/corretor/login';
-
-  const redirectUser = () => {
-    if (profile?.is_admin) {
-      navigate('/admin/dashboard');
-    } else if (profile?.user_type === 'broker' || isCorretorLogin) {
-      navigate('/corretor/dashboard');
-    } else {
-      navigate('/');
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,10 +48,14 @@ const Auth = () => {
           description: "Redirecionando..."
         });
         
-        // Aguarda um pouco para o perfil carregar
+        // Redirect based on user type - wait a bit for profile to load
         setTimeout(() => {
-          redirectUser();
-        }, 500);
+          if (isCorretorLogin) {
+            navigate('/corretor/dashboard');
+          } else {
+            navigate('/cliente/dashboard');
+          }
+        }, 1000);
       }
     } catch (error) {
       toast({
@@ -95,11 +89,11 @@ const Auth = () => {
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Redirecionando..."
+          description: "Redirecionando para sua área..."
         });
         
         setTimeout(() => {
-          redirectUser();
+          navigate('/cliente/dashboard');
         }, 1000);
       }
     } catch (error) {

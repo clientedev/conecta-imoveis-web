@@ -10,6 +10,10 @@ export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
 
+  console.log('Header - User:', user?.email);
+  console.log('Header - Profile:', profile);
+  console.log('Header - Is Admin:', profile?.is_admin);
+
   const navigation = [
     { name: "Início", href: "/", icon: Home },
     { name: "Imóveis", href: "/imoveis", icon: Building },
@@ -61,6 +65,8 @@ export const Header = () => {
                 <span className="text-sm" style={{ color: '#1d2846' }}>
                   Olá, {profile?.full_name || user.email}
                 </span>
+                
+                {/* Admin Button - Show if user is admin */}
                 {profile?.is_admin && (
                   <Button variant="outline" asChild>
                     <Link to="/admin/dashboard">
@@ -69,6 +75,25 @@ export const Header = () => {
                     </Link>
                   </Button>
                 )}
+                
+                {/* Client Dashboard Button */}
+                {profile?.user_type === 'client' && (
+                  <Button variant="outline" asChild>
+                    <Link to="/cliente/dashboard">
+                      Dashboard
+                    </Link>
+                  </Button>
+                )}
+                
+                {/* Broker Dashboard Button */}
+                {profile?.user_type === 'broker' && (
+                  <Button variant="outline" asChild>
+                    <Link to="/corretor/dashboard">
+                      Dashboard
+                    </Link>
+                  </Button>
+                )}
+                
                 <Button variant="outline" onClick={handleSignOut}>
                   Sair
                 </Button>
@@ -119,6 +144,20 @@ export const Header = () => {
                           <Link to="/admin/dashboard" onClick={() => setIsOpen(false)}>
                             <Settings className="h-4 w-4 mr-2" />
                             Área Admin
+                          </Link>
+                        </Button>
+                      )}
+                      {profile?.user_type === 'client' && (
+                        <Button variant="outline" className="w-full" asChild>
+                          <Link to="/cliente/dashboard" onClick={() => setIsOpen(false)}>
+                            Dashboard Cliente
+                          </Link>
+                        </Button>
+                      )}
+                      {profile?.user_type === 'broker' && (
+                        <Button variant="outline" className="w-full" asChild>
+                          <Link to="/corretor/dashboard" onClick={() => setIsOpen(false)}>
+                            Dashboard Corretor
                           </Link>
                         </Button>
                       )}
