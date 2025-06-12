@@ -36,12 +36,16 @@ export const HeroSection = () => {
                   Ver Imóveis
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
-                <Link to="/contato" className="flex items-center">
-                  Falar com Corretor
-                </Link>
-              </Button>
+              <Button
+  size="lg"
+  variant="outline"
+  className="bg-white text-blue-900 border-white hover:bg-gray-100"
+>
+  <Link to="/contato" className="flex items-center">
+    Falar com Corretor
+  </Link>
+</Button>
+
             </div>
 
             {/* Stats */}
