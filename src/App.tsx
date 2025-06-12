@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import About from "./pages/About";
+import Properties from "./pages/Properties";
 import ClientDashboard from "./pages/ClientDashboard";
 import BrokerDashboard from "./pages/BrokerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -28,12 +30,14 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Auth />} />
             <Route path="/corretor/login" element={<Auth />} />
+            <Route path="/sobre" element={<About />} />
+            <Route path="/imoveis" element={<Properties />} />
+            <Route path="/contato" element={<LeadsPage />} />
             <Route path="/cliente/dashboard" element={<ClientDashboard />} />
             <Route path="/corretor/dashboard" element={<BrokerDashboard />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/imovel/:id" element={<PropertyDetail />} />
             <Route path="/agendar-visita/:id" element={<ScheduleVisit />} />
-            <Route path="/contato" element={<LeadsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

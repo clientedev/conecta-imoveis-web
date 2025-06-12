@@ -29,28 +29,14 @@ const Auth = () => {
   
   const isCorretorLogin = location.pathname === '/corretor/login';
 
-  const waitForProfileAndRedirect = () => {
-    const checkProfile = () => {
-      console.log('Checking profile for redirect...', profile);
-      
-      if (profile) {
-        console.log('Profile found, redirecting based on user type:', profile.user_type);
-        
-        if (profile.is_admin || profile.user_type === 'admin') {
-          navigate('/admin/dashboard');
-        } else if (profile.user_type === 'broker' || isCorretorLogin) {
-          navigate('/corretor/dashboard');
-        } else {
-          navigate('/cliente/dashboard');
-        }
-      } else if (user) {
-        // Profile not loaded yet, wait a bit more
-        console.log('User exists but profile not loaded, waiting...');
-        setTimeout(checkProfile, 500);
-      }
-    };
-    
-    checkProfile();
+  const redirectUser = () => {
+    if (profile?.is_admin) {
+      navigate('/admin/dashboard');
+    } else if (profile?.user_type === 'broker' || isCorretorLogin) {
+      navigate('/corretor/dashboard');
+    } else {
+      navigate('/');
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -61,7 +47,6 @@ const Auth = () => {
       const { error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
-        console.error('Login error:', error);
         toast({
           title: "Erro no login",
           description: error.message,
@@ -73,13 +58,12 @@ const Auth = () => {
           description: "Redirecionando..."
         });
         
-        // Wait for profile to load and then redirect
+        // Aguarda um pouco para o perfil carregar
         setTimeout(() => {
-          waitForProfileAndRedirect();
-        }, 1000);
+          redirectUser();
+        }, 500);
       }
     } catch (error) {
-      console.error('Login exception:', error);
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado",
@@ -103,7 +87,6 @@ const Auth = () => {
       );
       
       if (error) {
-        console.error('Signup error:', error);
         toast({
           title: "Erro no cadastro",
           description: error.message,
@@ -115,13 +98,11 @@ const Auth = () => {
           description: "Redirecionando..."
         });
         
-        // Wait for profile to load and then redirect
         setTimeout(() => {
-          waitForProfileAndRedirect();
-        }, 2000);
+          redirectUser();
+        }, 1000);
       }
     } catch (error) {
-      console.error('Signup exception:', error);
       toast({
         title: "Erro no cadastro",
         description: "Ocorreu um erro inesperado",

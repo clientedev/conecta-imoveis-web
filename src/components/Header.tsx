@@ -1,13 +1,14 @@
 
 import { Button } from "@/components/ui/button";
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Home, Building, Users, Phone, LogIn } from "lucide-react";
+import { Menu, Home, Building, Users, Phone, LogIn, Settings } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, profile, signOut } = useAuth();
 
   const navigation = [
     { name: "Início", href: "/", icon: Home },
@@ -16,6 +17,11 @@ export const Header = () => {
     { name: "Contato", href: "/contato", icon: Phone },
   ];
 
+  const handleSignOut = async () => {
+    await signOut();
+    setIsOpen(false);
+  };
+
   return (
     <header style={{ backgroundColor: '#f3f4f5' }} className="shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -23,12 +29,12 @@ export const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <img 
-              src="/logo.png" 
-              alt="MM Conecta Logo" 
+              src="/lovable-uploads/dfe231c1-0493-4417-9452-d818af94b8e6.png" 
+              alt="M&M Conecta Logo" 
               className="h-10 w-auto"
             />
             <div>
-              <h1 className="text-xl font-bold" style={{ color: '#1d2846' }}>MM Conecta</h1>
+              <h1 className="text-xl font-bold" style={{ color: '#1d2846' }}>M&M Conecta</h1>
               <p className="text-xs" style={{ color: '#1d2846' }}>Imóveis</p>
             </div>
           </Link>
@@ -50,17 +56,38 @@ export const Header = () => {
 
           {/* Login/Access Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" asChild>
-              <Link to="/login">
-                <LogIn className="h-4 w-4 mr-2" />
-                Cliente
-              </Link>
-            </Button>
-            <Button asChild style={{ backgroundColor: '#1d2846' }}>
-              <Link to="/corretor/login">
-                Corretor
-              </Link>
-            </Button>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-sm" style={{ color: '#1d2846' }}>
+                  Olá, {profile?.full_name || user.email}
+                </span>
+                {profile?.is_admin && (
+                  <Button variant="outline" asChild>
+                    <Link to="/admin/dashboard">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin
+                    </Link>
+                  </Button>
+                )}
+                <Button variant="outline" onClick={handleSignOut}>
+                  Sair
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button variant="outline" asChild>
+                  <Link to="/login">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Cliente
+                  </Link>
+                </Button>
+                <Button asChild style={{ backgroundColor: '#1d2846' }}>
+                  <Link to="/corretor/login">
+                    Corretor
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -85,17 +112,35 @@ export const Header = () => {
                   </Link>
                 ))}
                 <div className="border-t pt-4 space-y-2">
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link to="/login">
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Área do Cliente
-                    </Link>
-                  </Button>
-                  <Button className="w-full" asChild style={{ backgroundColor: '#1d2846' }}>
-                    <Link to="/corretor/login">
-                      Área do Corretor
-                    </Link>
-                  </Button>
+                  {user ? (
+                    <>
+                      {profile?.is_admin && (
+                        <Button variant="outline" className="w-full" asChild>
+                          <Link to="/admin/dashboard" onClick={() => setIsOpen(false)}>
+                            <Settings className="h-4 w-4 mr-2" />
+                            Área Admin
+                          </Link>
+                        </Button>
+                      )}
+                      <Button variant="outline" className="w-full" onClick={handleSignOut}>
+                        Sair
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" className="w-full" asChild>
+                        <Link to="/login">
+                          <LogIn className="h-4 w-4 mr-2" />
+                          Área do Cliente
+                        </Link>
+                      </Button>
+                      <Button className="w-full" asChild style={{ backgroundColor: '#1d2846' }}>
+                        <Link to="/corretor/login">
+                          Área do Corretor
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </SheetContent>
