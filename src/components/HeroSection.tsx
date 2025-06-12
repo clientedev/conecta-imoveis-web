@@ -29,33 +29,19 @@ export const HeroSection = () => {
               </p>
             </div>
 
-           <div className="flex flex-col sm:flex-row gap-4">
-  <Button
-    size="lg"
-    style={{ backgroundColor: '#949492' }}
-    className="text-white font-semibold hover:opacity-90"
-    asChild
-  >
-    <Link to="/imoveis">
-      <Home className="h-5 w-5 mr-2" />
-      Ver Imóveis
-      <ArrowRight className="h-5 w-5 ml-2" />
-    </Link>
-  </Button>
-
-  <Button
-    size="lg"
-    variant="outline"
-    className="bg-white text-blue-900 border-white hover:bg-gray-100"
-    asChild
-  >
-    <Link to="/contato" className="flex items-center">
-      Falar com Corretor
-    </Link>
-  </Button>
-</div>
-
-
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button size="lg" style={{ backgroundColor: '#949492' }} className="text-white font-semibold hover:opacity-90" asChild>
+                <Link to="/imoveis">
+                  <Home className="h-5 w-5 mr-2" />
+                  Ver Imóveis
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
+                <Link to="/contato" className="flex items-center">
+                  Falar com Corretor
+                </Link>
+              </Button>
             </div>
 
             {/* Stats */}
