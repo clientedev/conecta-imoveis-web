@@ -37,7 +37,7 @@ export const HeroSection = () => {
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-black hover:bg-white hover:text-gray-900">
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
                 <Link to="/contato" className="flex items-center">
                   Falar com Corretor
                 </Link>
