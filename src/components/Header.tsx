@@ -3,15 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Home, Building, Users, Phone, LogIn, Settings } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
   console.log('Header - User:', user?.email);
   console.log('Header - Profile:', profile);
+  console.log('Header - User Type:', profile?.user_type);
   console.log('Header - Is Admin:', profile?.is_admin);
 
   const navigation = [
@@ -22,8 +24,10 @@ export const Header = () => {
   ];
 
   const handleSignOut = async () => {
+    console.log('Header: Initiating sign out...');
     await signOut();
     setIsOpen(false);
+    navigate('/');
   };
 
   return (
@@ -86,10 +90,10 @@ export const Header = () => {
                 )}
                 
                 {/* Broker Dashboard Button */}
-                {profile?.user_type === 'broker' && (
+                {(profile?.user_type === 'broker' || profile?.user_type === 'admin') && (
                   <Button variant="outline" asChild>
                     <Link to="/corretor/dashboard">
-                      Dashboard
+                      Dashboard Corretor
                     </Link>
                   </Button>
                 )}
@@ -154,7 +158,7 @@ export const Header = () => {
                           </Link>
                         </Button>
                       )}
-                      {profile?.user_type === 'broker' && (
+                      {(profile?.user_type === 'broker' || profile?.user_type === 'admin') && (
                         <Button variant="outline" className="w-full" asChild>
                           <Link to="/corretor/dashboard" onClick={() => setIsOpen(false)}>
                             Dashboard Corretor

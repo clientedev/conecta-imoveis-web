@@ -46,12 +46,17 @@ const BrokerDashboard = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('BrokerDashboard - User:', user?.email);
+    console.log('BrokerDashboard - Profile:', profile);
+    console.log('BrokerDashboard - User Type:', profile?.user_type);
+
     if (!user) {
       navigate('/corretor/login');
       return;
     }
 
-    if (profile && profile.user_type === 'client') {
+    // Allow both 'broker' and 'admin' user types to access broker dashboard
+    if (profile && profile.user_type !== 'broker' && profile.user_type !== 'admin') {
       toast({
         title: "Acesso negado",
         description: "Você não tem permissão para acessar esta área",

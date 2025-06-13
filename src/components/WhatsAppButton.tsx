@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { MessageCircle } from "lucide-react";
+import { Phone } from "lucide-react";
 
 export const WhatsAppButton = () => {
   const whatsappNumber = "5511915137494"; // WhatsApp atendimento: (11) 91513-7494
@@ -17,7 +17,7 @@ export const WhatsAppButton = () => {
         className="bg-green-500 hover:bg-green-600 text-white rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
         size="icon"
       >
-        <MessageCircle className="h-6 w-6" />
+        <Phone className="h-6 w-6" />
       </Button>
       
       {/* Pulse animation */}

@@ -22,7 +22,7 @@ const Auth = () => {
     phone: '' 
   });
   
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, refreshProfile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,6 +47,9 @@ const Auth = () => {
           title: "Login realizado com sucesso!",
           description: "Redirecionando..."
         });
+        
+        // Refresh profile to get the latest user_type
+        await refreshProfile();
         
         // Redirect based on user type - wait a bit for profile to load
         setTimeout(() => {
