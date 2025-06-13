@@ -34,10 +34,12 @@ interface Property {
 
 interface User {
   id: string;
-  email: string;
   full_name?: string;
   user_type: string;
   is_active: boolean;
+  is_admin?: boolean;
+  phone?: string;
+  role?: string;
   created_at: string;
 }
 
@@ -764,9 +766,9 @@ const AdminDashboard = () => {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex-1">
                             <h4 className="font-semibold" style={{ color: '#1d2846' }}>
-                              {user.full_name || user.email}
+                              {user.full_name || user.id}
                             </h4>
-                            <p className="text-gray-600 text-sm">{user.email}</p>
+                            <p className="text-gray-600 text-sm">ID: {user.id}</p>
                             <div className="flex gap-2 mt-2">
                               <Badge variant={user.user_type === 'admin' ? 'default' : user.user_type === 'broker' ? 'secondary' : 'outline'}>
                                 {user.user_type === 'admin' ? 'Administrador' : 
