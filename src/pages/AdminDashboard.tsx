@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Home, Users, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, Home, Users, Calendar, TrendingUp, UserCheck, UserX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Property {
@@ -32,10 +32,49 @@ interface Property {
   created_at: string;
 }
 
+interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  user_type: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface Lead {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  property_type?: string;
+  location_interest?: string;
+  price_range?: string;
+  observations?: string;
+  created_at: string;
+}
+
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  status: string;
+  notes?: string;
+  profiles: {
+    full_name: string;
+    phone?: string;
+  };
+  properties: {
+    title: string;
+    location: string;
+  };
+}
+
 const AdminDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
@@ -44,7 +83,9 @@ const AdminDashboard = () => {
     totalProperties: 0,
     activeProperties: 0,
     featuredProperties: 0,
-    totalLeads: 0
+    totalLeads: 0,
+    totalUsers: 0,
+    totalAppointments: 0
   });
 
   const [formData, setFormData] = useState({
@@ -62,6 +103,9 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchProperties();
+    fetchUsers();
+    fetchLeads();
+    fetchAppointments();
     fetchStats();
   }, []);
 
@@ -86,24 +130,135 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchLeads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          status,
+          notes,
+          profiles (
+            full_name,
+            phone
+          ),
+          properties (
+            title,
+            location
+          )
+        `)
+        .order('appointment_date', { ascending: false });
+
+      if (error) throw error;
+      setAppointments(data || []);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    }
+  };
+
   const fetchStats = async () => {
     try {
-      const [propertiesData, leadsData] = await Promise.all([
+      const [propertiesData, leadsData, usersData, appointmentsData] = await Promise.all([
         supabase.from('properties').select('*'),
-        supabase.from('leads').select('*')
+        supabase.from('leads').select('*'),
+        supabase.from('profiles').select('*'),
+        supabase.from('appointments').select('*')
       ]);
 
       const properties = propertiesData.data || [];
       const leads = leadsData.data || [];
+      const users = usersData.data || [];
+      const appointments = appointmentsData.data || [];
 
       setStats({
         totalProperties: properties.length,
         activeProperties: properties.filter(p => p.is_available).length,
         featuredProperties: properties.filter(p => p.featured).length,
-        totalLeads: leads.length
+        totalLeads: leads.length,
+        totalUsers: users.length,
+        totalAppointments: appointments.length
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const promoteUser = async (userId: string, newType: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ user_type: newType })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: `Usuário promovido para ${newType} com sucesso`
+      });
+
+      fetchUsers();
+    } catch (error) {
+      console.error('Error promoting user:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao promover usuário",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: !currentStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso`
+      });
+
+      fetchUsers();
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao alterar status do usuário",
+        variant: "destructive"
+      });
     }
   };
 
@@ -269,12 +424,12 @@ const AdminDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#1d2846' }}>Painel Administrativo</h1>
-            <p className="text-gray-600">Gerencie imóveis, leads e configurações</p>
+            <p className="text-gray-600">Gerencie imóveis, usuários, leads e configurações</p>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
           <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -330,11 +485,40 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Usuários</p>
+                  <p className="text-2xl font-bold text-orange-600">{stats.totalUsers}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <Calendar className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Agendamentos</p>
+                  <p className="text-2xl font-bold text-indigo-600">{stats.totalAppointments}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="properties" className="space-y-6">
           <TabsList className="bg-white">
             <TabsTrigger value="properties">Imóveis</TabsTrigger>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           </TabsList>
@@ -566,14 +750,112 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="users">
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle style={{ color: '#1d2846' }}>Gerenciar Usuários</CardTitle>
+                <CardDescription>Promova usuários e gerencie acessos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <Card key={user.id} className="border border-gray-100">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <h4 className="font-semibold" style={{ color: '#1d2846' }}>
+                              {user.full_name || user.email}
+                            </h4>
+                            <p className="text-gray-600 text-sm">{user.email}</p>
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant={user.user_type === 'admin' ? 'default' : user.user_type === 'broker' ? 'secondary' : 'outline'}>
+                                {user.user_type === 'admin' ? 'Administrador' : 
+                                 user.user_type === 'broker' ? 'Corretor' : 'Cliente'}
+                              </Badge>
+                              <Badge variant={user.is_active ? 'default' : 'destructive'}>
+                                {user.is_active ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            {user.user_type === 'client' && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => promoteUser(user.id, 'broker')}
+                                style={{ backgroundColor: '#1d2846' }}
+                                className="text-white"
+                              >
+                                <UserCheck className="h-4 w-4 mr-1" />
+                                Promover a Corretor
+                              </Button>
+                            )}
+                            
+                            {user.user_type === 'broker' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => promoteUser(user.id, 'client')}
+                              >
+                                <UserX className="h-4 w-4 mr-1" />
+                                Remover Corretor
+                              </Button>
+                            )}
+                            
+                            <Button 
+                              size="sm" 
+                              variant={user.is_active ? "destructive" : "default"}
+                              onClick={() => toggleUserStatus(user.id, user.is_active)}
+                            >
+                              {user.is_active ? 'Desativar' : 'Ativar'}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="leads">
             <Card className="bg-white shadow-sm">
               <CardHeader>
                 <CardTitle style={{ color: '#1d2846' }}>Leads</CardTitle>
-                <CardDescription>Lista de leads</CardDescription>
+                <CardDescription>Leads capturados pelo site</CardDescription>
               </CardHeader>
               <CardContent>
-                Em breve
+                <div className="space-y-4">
+                  {leads.map((lead) => (
+                    <Card key={lead.id} className="border border-gray-100">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-semibold" style={{ color: '#1d2846' }}>{lead.name}</h4>
+                            <p className="text-gray-600 text-sm">{lead.email} | {lead.phone}</p>
+                          </div>
+                          <Badge variant="secondary">
+                            {new Date(lead.created_at).toLocaleDateString('pt-BR')}
+                          </Badge>
+                        </div>
+                        
+                        {lead.property_type && (
+                          <p className="text-sm"><strong>Tipo:</strong> {lead.property_type}</p>
+                        )}
+                        {lead.location_interest && (
+                          <p className="text-sm"><strong>Localização:</strong> {lead.location_interest}</p>
+                        )}
+                        {lead.price_range && (
+                          <p className="text-sm"><strong>Faixa de preço:</strong> {lead.price_range}</p>
+                        )}
+                        {lead.observations && (
+                          <p className="text-sm"><strong>Observações:</strong> {lead.observations}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -582,10 +864,46 @@ const AdminDashboard = () => {
             <Card className="bg-white shadow-sm">
               <CardHeader>
                 <CardTitle style={{ color: '#1d2846' }}>Agendamentos</CardTitle>
-                <CardDescription>Lista de agendamentos</CardDescription>
+                <CardDescription>Visitas agendadas pelos clientes</CardDescription>
               </CardHeader>
               <CardContent>
-                Em breve
+                <div className="space-y-4">
+                  {appointments.map((appointment) => (
+                    <Card key={appointment.id} className="border border-gray-100">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-semibold" style={{ color: '#1d2846' }}>
+                              {appointment.properties.title}
+                            </h4>
+                            <p className="text-gray-600 text-sm">{appointment.properties.location}</p>
+                            <p className="text-sm">
+                              <strong>Cliente:</strong> {appointment.profiles.full_name}
+                              {appointment.profiles.phone && ` - ${appointment.profiles.phone}`}
+                            </p>
+                          </div>
+                          <Badge variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}>
+                            {appointment.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-sm">
+                          <strong>Data:</strong> {new Date(appointment.appointment_date).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                        
+                        {appointment.notes && (
+                          <p className="text-sm"><strong>Observações:</strong> {appointment.notes}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
