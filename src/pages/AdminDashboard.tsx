@@ -1,30 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, Users, LogOut, Mail, Phone, Building, Plus, Edit, Trash2, UserCheck, UserX } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus, Edit, Trash2, Home, Users, Calendar, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  property_type?: string;
-  location_interest?: string;
-  price_range?: string;
-  observations?: string;
-  created_at: string;
-}
 
 interface Property {
   id: string;
@@ -39,98 +29,56 @@ interface Property {
   image_url?: string;
   featured: boolean;
   is_available: boolean;
-}
-
-interface User {
-  id: string;
-  full_name?: string;
-  email?: string;
-  user_type: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface AdminEmail {
-  id: string;
-  email: string;
   created_at: string;
 }
 
 const AdminDashboard = () => {
-  const { user, profile, signOut } = useAuth();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [adminEmails, setAdminEmails] = useState<AdminEmail[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [newProperty, setNewProperty] = useState<Partial<Property>>({});
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
-  const [newAdminEmail, setNewAdminEmail] = useState('');
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [propertyImages, setPropertyImages] = useState<string[]>([]);
+  const [stats, setStats] = useState({
+    totalProperties: 0,
+    activeProperties: 0,
+    featuredProperties: 0,
+    totalLeads: 0
+  });
+
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    location: '',
+    price: '',
+    bedrooms: '',
+    bathrooms: '',
+    area: '',
+    property_type: '',
+    featured: false,
+    is_available: true
+  });
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
+    fetchProperties();
+    fetchStats();
+  }, []);
 
-    if (profile && !profile.is_admin && profile.user_type !== 'admin') {
-      toast({
-        title: "Acesso negado",
-        description: "Você não tem permissão para acessar esta área",
-        variant: "destructive"
-      });
-      navigate('/');
-      return;
-    }
-
-    fetchData();
-  }, [user, profile, navigate]);
-
-  const fetchData = async () => {
+  const fetchProperties = async () => {
     try {
-      // Fetch leads
-      const { data: leadsData, error: leadsError } = await supabase
-        .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (leadsError) throw leadsError;
-      setLeads(leadsData || []);
-
-      // Fetch properties
-      const { data: propertiesData, error: propertiesError } = await supabase
+      const { data, error } = await supabase
         .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (propertiesError) throw propertiesError;
-      setProperties(propertiesData || []);
-
-      // Fetch users
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('id, full_name, user_type, is_active, created_at')
-        .order('created_at', { ascending: false });
-
-      if (usersError) throw usersError;
-      setUsers(usersData || []);
-
-      // Fetch admin emails
-      const { data: adminEmailsData, error: adminEmailsError } = await supabase
-        .from('admin_emails')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (adminEmailsError) throw adminEmailsError;
-      setAdminEmails(adminEmailsData || []);
-
+      if (error) throw error;
+      setProperties(data || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching properties:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os dados",
+        description: "Não foi possível carregar os imóveis",
         variant: "destructive"
       });
     } finally {
@@ -138,71 +86,155 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+  const fetchStats = async () => {
+    try {
+      const [propertiesData, leadsData] = await Promise.all([
+        supabase.from('properties').select('*'),
+        supabase.from('leads').select('*')
+      ]);
+
+      const properties = propertiesData.data || [];
+      const leads = leadsData.data || [];
+
+      setStats({
+        totalProperties: properties.length,
+        activeProperties: properties.filter(p => p.is_available).length,
+        featuredProperties: properties.filter(p => p.featured).length,
+        totalLeads: leads.length
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
   };
 
-  const saveProperty = async () => {
-    try {
-      // Validar campos obrigatórios
-      if (!newProperty.title || !newProperty.location || !newProperty.price) {
-        toast({
-          title: "Erro",
-          description: "Título, localização e preço são obrigatórios",
-          variant: "destructive"
-        });
-        return;
-      }
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      location: '',
+      price: '',
+      bedrooms: '',
+      bathrooms: '',
+      area: '',
+      property_type: '',
+      featured: false,
+      is_available: true
+    });
+    setPropertyImages([]);
+    setEditingProperty(null);
+  };
 
-      // Criar objeto com campos obrigatórios preenchidos
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
       const propertyData = {
-        title: newProperty.title,
-        location: newProperty.location,
-        price: newProperty.price,
-        description: newProperty.description || null,
-        bedrooms: newProperty.bedrooms || null,
-        bathrooms: newProperty.bathrooms || null,
-        area: newProperty.area || null,
-        property_type: newProperty.property_type || null,
-        image_url: newProperty.image_url || null,
-        featured: newProperty.featured || false,
-        is_available: newProperty.is_available !== false
+        ...formData,
+        price: parseFloat(formData.price),
+        bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
+        bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
+        image_url: propertyImages[0] || null // Primeira imagem como principal
       };
 
+      let result;
       if (editingProperty) {
-        // Update existing property
-        const { error } = await supabase
+        result = await supabase
           .from('properties')
           .update(propertyData)
-          .eq('id', editingProperty.id);
-
-        if (error) throw error;
-        toast({ title: "Imóvel atualizado com sucesso!" });
+          .eq('id', editingProperty.id)
+          .select();
       } else {
-        // Create new property
-        const { error } = await supabase
+        result = await supabase
           .from('properties')
-          .insert(propertyData);
-
-        if (error) throw error;
-        toast({ title: "Imóvel criado com sucesso!" });
+          .insert([propertyData])
+          .select();
       }
 
-      setNewProperty({});
-      setEditingProperty(null);
-      fetchData();
+      if (result.error) throw result.error;
+
+      const propertyId = result.data?.[0]?.id;
+
+      // Se temos imagens e um propertyId, salvar as imagens
+      if (propertyId && propertyImages.length > 0) {
+        // Primeiro, deletar imagens existentes se estamos editando
+        if (editingProperty) {
+          await supabase
+            .from('property_images')
+            .delete()
+            .eq('property_id', propertyId);
+        }
+
+        // Inserir novas imagens
+        const imageInserts = propertyImages.map((url, index) => ({
+          property_id: propertyId,
+          image_url: url,
+          image_order: index
+        }));
+
+        await supabase
+          .from('property_images')
+          .insert(imageInserts);
+      }
+
+      toast({
+        title: "Sucesso",
+        description: editingProperty ? "Imóvel atualizado com sucesso" : "Imóvel criado com sucesso"
+      });
+
+      setDialogOpen(false);
+      resetForm();
+      fetchProperties();
+      fetchStats();
     } catch (error) {
       console.error('Error saving property:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar o imóvel",
+        description: "Erro ao salvar imóvel",
         variant: "destructive"
       });
     }
   };
 
-  const deleteProperty = async (id: string) => {
+  const handleEdit = async (property: Property) => {
+    setEditingProperty(property);
+    setFormData({
+      title: property.title,
+      description: property.description || '',
+      location: property.location,
+      price: property.price.toString(),
+      bedrooms: property.bedrooms?.toString() || '',
+      bathrooms: property.bathrooms?.toString() || '',
+      area: property.area || '',
+      property_type: property.property_type || '',
+      featured: property.featured,
+      is_available: property.is_available
+    });
+
+    // Buscar imagens do imóvel
+    try {
+      const { data } = await supabase
+        .from('property_images')
+        .select('image_url')
+        .eq('property_id', property.id)
+        .order('image_order');
+      
+      const images = data?.map(img => img.image_url) || [];
+      if (images.length === 0 && property.image_url) {
+        setPropertyImages([property.image_url]);
+      } else {
+        setPropertyImages(images);
+      }
+    } catch (error) {
+      console.error('Error fetching property images:', error);
+      setPropertyImages(property.image_url ? [property.image_url] : []);
+    }
+
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este imóvel?')) return;
+
     try {
       const { error } = await supabase
         .from('properties')
@@ -210,569 +242,323 @@ const AdminDashboard = () => {
         .eq('id', id);
 
       if (error) throw error;
-      toast({ title: "Imóvel removido com sucesso!" });
-      fetchData();
+
+      toast({
+        title: "Sucesso",
+        description: "Imóvel excluído com sucesso"
+      });
+
+      fetchProperties();
+      fetchStats();
     } catch (error) {
       console.error('Error deleting property:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível remover o imóvel",
+        description: "Erro ao excluir imóvel",
         variant: "destructive"
       });
     }
   };
-
-  const toggleUserType = async (userId: string, currentType: string) => {
-    try {
-      const newType = currentType === 'broker' ? 'client' : 'broker';
-      
-      const { error } = await supabase.rpc('promote_to_broker', {
-        _user_id: userId
-      });
-
-      if (error) throw error;
-
-      toast({ 
-        title: newType === 'broker' ? "Usuário promovido a corretor!" : "Usuário removido de corretor!"
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Error updating user type:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o tipo de usuário",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: !currentStatus })
-        .eq('id', userId);
-
-      if (error) throw error;
-      toast({ title: !currentStatus ? "Usuário ativado!" : "Usuário desativado!" });
-      fetchData();
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status do usuário",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const addAdminEmail = async () => {
-    if (!newAdminEmail) return;
-
-    try {
-      const { error } = await supabase
-        .from('admin_emails')
-        .insert([{ email: newAdminEmail }]);
-
-      if (error) throw error;
-      toast({ title: "Email de administrador adicionado!" });
-      setNewAdminEmail('');
-      fetchData();
-    } catch (error) {
-      console.error('Error adding admin email:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível adicionar o email",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const removeAdminEmail = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('admin_emails')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      toast({ title: "Email de administrador removido!" });
-      fetchData();
-    } catch (error) {
-      console.error('Error removing admin email:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível remover o email",
-        variant: "destructive"
-      });
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f3f4f5' }}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 mx-auto" style={{ borderColor: '#1d2846' }}></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f3f4f5' }}>
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold" style={{ color: '#1d2846' }}>Painel Administrativo</h1>
-              <p className="text-gray-600">Bem-vindo, {profile?.full_name || user?.email}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={() => navigate('/')}>
-                Voltar ao Site
-              </Button>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </Button>
-            </div>
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: '#1d2846' }}>Painel Administrativo</h1>
+            <p className="text-gray-600">Gerencie imóveis, leads e configurações</p>
           </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>{leads.length}</div>
+          <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Home className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total de Imóveis</p>
+                  <p className="text-2xl font-bold" style={{ color: '#1d2846' }}>{stats.totalProperties}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Imóveis</CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>{properties.length}</div>
+          <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Imóveis Ativos</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.activeProperties}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuários</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>{users.length}</div>
+          <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#949492' }}>
+                  <Home className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Em Destaque</p>
+                  <p className="text-2xl font-bold" style={{ color: '#949492' }}>{stats.featuredProperties}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Corretores</CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" style={{ color: '#1d2846' }}>
-                {users.filter(u => u.user_type === 'broker').length}
+          <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total de Leads</p>
+                  <p className="text-2xl font-bold text-purple-600">{stats.totalLeads}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content */}
-        <Tabs defaultValue="properties" className="space-y-4">
+        <Tabs defaultValue="properties" className="space-y-6">
           <TabsList className="bg-white">
             <TabsTrigger value="properties">Imóveis</TabsTrigger>
-            <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="leads">Leads</TabsTrigger>
-            <TabsTrigger value="admins">Administradores</TabsTrigger>
+            <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="properties">
-            <Card className="bg-white">
+            <Card className="bg-white shadow-sm">
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
-                      <Building className="h-5 w-5 mr-2" />
-                      Gerenciar Imóveis
-                    </CardTitle>
-                    <CardDescription>
-                      Adicione, edite ou remova imóveis do site
-                    </CardDescription>
+                    <CardTitle style={{ color: '#1d2846' }}>Gerenciar Imóveis</CardTitle>
+                    <CardDescription>Adicione, edite ou remova imóveis</CardDescription>
                   </div>
-                  <Dialog>
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button style={{ backgroundColor: '#1d2846' }}>
+                      <Button 
+                        onClick={resetForm}
+                        className="text-white"
+                        style={{ backgroundColor: '#1d2846' }}
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Novo Imóvel
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl bg-white">
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle style={{ color: '#1d2846' }}>
+                        <DialogTitle>
                           {editingProperty ? 'Editar Imóvel' : 'Novo Imóvel'}
                         </DialogTitle>
                         <DialogDescription>
-                          Preencha os dados do imóvel
+                          Preencha as informações do imóvel. Você pode adicionar até 10 imagens.
                         </DialogDescription>
                       </DialogHeader>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="title">Título *</Label>
+                            <Input
+                              id="title"
+                              value={formData.title}
+                              onChange={(e) => setFormData({...formData, title: e.target.value})}
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="location">Localização *</Label>
+                            <Input
+                              id="location"
+                              value={formData.location}
+                              onChange={(e) => setFormData({...formData, location: e.target.value})}
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="price">Preço *</Label>
+                            <Input
+                              id="price"
+                              type="number"
+                              step="0.01"
+                              value={formData.price}
+                              onChange={(e) => setFormData({...formData, price: e.target.value})}
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="property_type">Tipo</Label>
+                            <Select
+                              value={formData.property_type}
+                              onValueChange={(value) => setFormData({...formData, property_type: value})}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o tipo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="apartamento">Apartamento</SelectItem>
+                                <SelectItem value="casa">Casa</SelectItem>
+                                <SelectItem value="terreno">Terreno</SelectItem>
+                                <SelectItem value="comercial">Comercial</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="bedrooms">Quartos</Label>
+                            <Input
+                              id="bedrooms"
+                              type="number"
+                              value={formData.bedrooms}
+                              onChange={(e) => setFormData({...formData, bedrooms: e.target.value})}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="bathrooms">Banheiros</Label>
+                            <Input
+                              id="bathrooms"
+                              type="number"
+                              value={formData.bathrooms}
+                              onChange={(e) => setFormData({...formData, bathrooms: e.target.value})}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="area">Área</Label>
+                            <Input
+                              id="area"
+                              placeholder="Ex: 120m²"
+                              value={formData.area}
+                              onChange={(e) => setFormData({...formData, area: e.target.value})}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Status</Label>
+                            <div className="flex gap-4">
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.featured}
+                                  onChange={(e) => setFormData({...formData, featured: e.target.checked})}
+                                />
+                                Destaque
+                              </label>
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.is_available}
+                                  onChange={(e) => setFormData({...formData, is_available: e.target.checked})}
+                                />
+                                Disponível
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="space-y-2">
-                          <Label htmlFor="title">Título *</Label>
-                          <Input
-                            id="title"
-                            value={newProperty.title || ''}
-                            onChange={(e) => setNewProperty({...newProperty, title: e.target.value})}
-                            placeholder="Ex: Apartamento Moderno no Centro"
+                          <Label htmlFor="description">Descrição</Label>
+                          <Textarea
+                            id="description"
+                            value={formData.description}
+                            onChange={(e) => setFormData({...formData, description: e.target.value})}
+                            rows={4}
                           />
                         </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="location">Localização *</Label>
-                          <Input
-                            id="location"
-                            value={newProperty.location || ''}
-                            onChange={(e) => setNewProperty({...newProperty, location: e.target.value})}
-                            placeholder="Ex: Centro, São Paulo"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="price">Preço (R$) *</Label>
-                          <Input
-                            id="price"
-                            type="number"
-                            value={newProperty.price || ''}
-                            onChange={(e) => setNewProperty({...newProperty, price: Number(e.target.value)})}
-                            placeholder="850000"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="property_type">Tipo</Label>
-                          <Select 
-                            value={newProperty.property_type || ''} 
-                            onValueChange={(value) => setNewProperty({...newProperty, property_type: value})}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="apartamento">Apartamento</SelectItem>
-                              <SelectItem value="casa">Casa</SelectItem>
-                              <SelectItem value="cobertura">Cobertura</SelectItem>
-                              <SelectItem value="studio">Studio</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="bedrooms">Quartos</Label>
-                          <Input
-                            id="bedrooms"
-                            type="number"
-                            value={newProperty.bedrooms || ''}
-                            onChange={(e) => setNewProperty({...newProperty, bedrooms: Number(e.target.value)})}
-                            placeholder="3"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="bathrooms">Banheiros</Label>
-                          <Input
-                            id="bathrooms"
-                            type="number"
-                            value={newProperty.bathrooms || ''}
-                            onChange={(e) => setNewProperty({...newProperty, bathrooms: Number(e.target.value)})}
-                            placeholder="2"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="area">Área</Label>
-                          <Input
-                            id="area"
-                            value={newProperty.area || ''}
-                            onChange={(e) => setNewProperty({...newProperty, area: e.target.value})}
-                            placeholder="95m²"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="image_url">URL da Imagem</Label>
-                          <Input
-                            id="image_url"
-                            value={newProperty.image_url || ''}
-                            onChange={(e) => setNewProperty({...newProperty, image_url: e.target.value})}
-                            placeholder="https://exemplo.com/imagem.jpg"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Descrição</Label>
-                        <Textarea
-                          id="description"
-                          value={newProperty.description || ''}
-                          onChange={(e) => setNewProperty({...newProperty, description: e.target.value})}
-                          placeholder="Descrição detalhada do imóvel..."
-                          rows={3}
+
+                        <MultiImageUpload
+                          propertyId={editingProperty?.id}
+                          onImagesChange={setPropertyImages}
+                          existingImages={propertyImages}
                         />
-                      </div>
-                      
-                      <div className="flex items-center space-x-4">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={newProperty.featured || false}
-                            onChange={(e) => setNewProperty({...newProperty, featured: e.target.checked})}
-                          />
-                          <span>Imóvel em destaque</span>
-                        </label>
-                        
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={newProperty.is_available !== false}
-                            onChange={(e) => setNewProperty({...newProperty, is_available: e.target.checked})}
-                          />
-                          <span>Disponível</span>
-                        </label>
-                      </div>
-                      
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => {
-                          setNewProperty({});
-                          setEditingProperty(null);
-                        }}>
-                          Cancelar
-                        </Button>
-                        <Button 
-                          onClick={saveProperty}
-                          style={{ backgroundColor: '#1d2846' }}
-                        >
-                          {editingProperty ? 'Atualizar' : 'Criar'} Imóvel
-                        </Button>
-                      </div>
+
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                            Cancelar
+                          </Button>
+                          <Button 
+                            type="submit"
+                            className="text-white"
+                            style={{ backgroundColor: '#1d2846' }}
+                          >
+                            {editingProperty ? 'Atualizar' : 'Criar'} Imóvel
+                          </Button>
+                        </div>
+                      </form>
                     </DialogContent>
                   </Dialog>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {properties.map((property) => (
-                    <div key={property.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold text-lg" style={{ color: '#1d2846' }}>{property.title}</h3>
-                          <p className="text-gray-600">{property.location}</p>
-                          <p className="text-lg font-bold" style={{ color: '#1d2846' }}>
-                            R$ {property.price.toLocaleString('pt-BR')}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          {property.featured && <Badge style={{ backgroundColor: '#949492' }}>Destaque</Badge>}
-                          <Badge variant={property.is_available ? "default" : "secondary"}>
-                            {property.is_available ? 'Disponível' : 'Indisponível'}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <div className="text-sm text-gray-600">
-                          {property.bedrooms}q • {property.bathrooms}b • {property.area}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              setEditingProperty(property);
-                              setNewProperty(property);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => deleteProperty(property.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="users">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
-                  <Users className="h-5 w-5 mr-2" />
-                  Gerenciar Usuários
-                </CardTitle>
-                <CardDescription>
-                  Promova usuários a corretores ou desative contas
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {users.map((user) => (
-                    <div key={user.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-semibold" style={{ color: '#1d2846' }}>{user.full_name || 'Sem nome'}</h3>
-                          <p className="text-sm text-gray-600">
-                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={user.user_type === 'broker' ? 'default' : 'secondary'}>
-                            {user.user_type === 'broker' ? 'Corretor' : 'Cliente'}
-                          </Badge>
-                          <Badge variant={user.is_active ? 'default' : 'destructive'}>
-                            {user.is_active ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleUserType(user.id, user.user_type)}
-                          >
-                            {user.user_type === 'broker' ? (
-                              <>
-                                <UserX className="h-4 w-4 mr-1" />
-                                Remover Corretor
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="h-4 w-4 mr-1" />
-                                Promover a Corretor
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={user.is_active ? 'destructive' : 'default'}
-                            onClick={() => toggleUserStatus(user.id, user.is_active)}
-                          >
-                            {user.is_active ? 'Desativar' : 'Ativar'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="leads">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
-                  <Mail className="h-5 w-5 mr-2" />
-                  Leads Recebidos
-                </CardTitle>
-                <CardDescription>
-                  Leads capturados através do formulário do site
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {leads.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Mail className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Nenhum lead encontrado</p>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#1d2846' }}></div>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {leads.map((lead) => (
-                      <div key={lead.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-semibold text-lg" style={{ color: '#1d2846' }}>{lead.name}</h3>
-                            <p className="text-sm text-gray-500">
-                              {new Date(lead.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
+                    {properties.map((property) => (
+                      <Card key={property.id} className="border border-gray-100">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col md:flex-row gap-4">
+                            <img
+                              src={property.image_url || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&h=150&fit=crop"}
+                              alt={property.title}
+                              className="w-full md:w-32 h-24 object-cover rounded"
+                            />
+                            
+                            <div className="flex-1">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+                                <h4 className="font-semibold" style={{ color: '#1d2846' }}>{property.title}</h4>
+                                <div className="flex gap-2">
+                                  {property.featured && (
+                                    <Badge style={{ backgroundColor: '#949492', color: 'white' }}>Destaque</Badge>
+                                  )}
+                                  <Badge variant={property.is_available ? "default" : "secondary"}>
+                                    {property.is_available ? "Disponível" : "Indisponível"}
+                                  </Badge>
+                                </div>
+                              </div>
+                              
+                              <p className="text-gray-600 text-sm mb-2">{property.location}</p>
+                              <p className="font-semibold text-lg" style={{ color: '#1d2846' }}>
+                                R$ {property.price.toLocaleString('pt-BR')}
+                              </p>
+                              
+                              <div className="flex justify-end gap-2 mt-4">
+                                <Button size="sm" variant="outline" onClick={() => handleEdit(property)}>
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Editar
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive" 
+                                  onClick={() => handleDelete(property.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Excluir
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                          <Badge variant="secondary" style={{ backgroundColor: '#949492', color: 'white' }}>
-                            Novo Lead
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                            <span>{lead.email}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                            <span>{lead.phone}</span>
-                          </div>
-                        </div>
-
-                        {lead.property_type && (
-                          <div className="mb-2">
-                            <strong>Tipo de imóvel:</strong> {lead.property_type}
-                          </div>
-                        )}
-                        
-                        {lead.location_interest && (
-                          <div className="mb-2">
-                            <strong>Localização de interesse:</strong> {lead.location_interest}
-                          </div>
-                        )}
-                        
-                        {lead.price_range && (
-                          <div className="mb-2">
-                            <strong>Faixa de preço:</strong> {lead.price_range}
-                          </div>
-                        )}
-                        
-                        {lead.observations && (
-                          <div className="mb-3">
-                            <strong>Observações:</strong> {lead.observations}
-                          </div>
-                        )}
-                        
-                        <div className="flex gap-2 mt-4">
-                          <Button size="sm" onClick={() => window.open(`mailto:${lead.email}`)}>
-                            <Mail className="h-4 w-4 mr-1" />
-                            Email
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => window.open(`tel:${lead.phone}`)}>
-                            <Phone className="h-4 w-4 mr-1" />
-                            Ligar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => window.open(`https://wa.me/55${lead.phone.replace(/\D/g, '')}`, '_blank')}
-                          >
-                            WhatsApp
-                          </Button>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 )}
@@ -780,49 +566,33 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="admins">
-            <Card className="bg-white">
+          <TabsContent value="leads">
+            <Card className="bg-white shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center" style={{ color: '#1d2846' }}>
-                  <UserCheck className="h-5 w-5 mr-2" />
-                  Emails de Administradores
-                </CardTitle>
-                <CardDescription>
-                  Gerencie quais emails têm acesso administrativo
-                </CardDescription>
+                <CardTitle style={{ color: '#1d2846' }}>Leads</CardTitle>
+                <CardDescription>Lista de leads</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2 mb-4">
-                  <Input
-                    placeholder="email@exemplo.com"
-                    value={newAdminEmail}
-                    onChange={(e) => setNewAdminEmail(e.target.value)}
-                  />
-                  <Button onClick={addAdminEmail} style={{ backgroundColor: '#1d2846' }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar
-                  </Button>
-                </div>
-                
-                <div className="space-y-2">
-                  {adminEmails.map((adminEmail) => (
-                    <div key={adminEmail.id} className="flex justify-between items-center p-3 border rounded">
-                      <span>{adminEmail.email}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => removeAdminEmail(adminEmail.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                Em breve
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="appointments">
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle style={{ color: '#1d2846' }}>Agendamentos</CardTitle>
+                <CardDescription>Lista de agendamentos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                Em breve
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </main>
+
+      <Footer />
     </div>
   );
 };

@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Bed, Bath, Ruler, MapPin, Calendar, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { PropertyCarousel } from "./PropertyCarousel";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PropertyCardProps {
   property: {
@@ -22,18 +24,50 @@ interface PropertyCardProps {
 
 export const PropertyCard = ({ property }: PropertyCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchPropertyImages();
+  }, [property.id]);
+
+  const fetchPropertyImages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('property_images')
+        .select('image_url')
+        .eq('property_id', property.id)
+        .order('image_order');
+
+      if (error) throw error;
+      
+      const imageUrls = data?.map(img => img.image_url) || [];
+      
+      // Se não tem imagens cadastradas, usar a image_url principal
+      if (imageUrls.length === 0 && property.image_url) {
+        setImages([property.image_url]);
+      } else {
+        setImages(imageUrls);
+      }
+    } catch (error) {
+      console.error('Error fetching property images:', error);
+      // Fallback para image_url se houver erro
+      if (property.image_url) {
+        setImages([property.image_url]);
+      }
+    }
+  };
 
   return (
     <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
-      <div className="relative overflow-hidden">
-        <img
-          src={property.image_url || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=500&h=300&fit=crop"}
-          alt={property.title}
-          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+      <div className="relative">
+        <PropertyCarousel 
+          images={images}
+          title={property.title}
+          className="h-48"
         />
         
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex gap-2">
+        <div className="absolute top-3 left-3 flex gap-2 z-10">
           {property.featured && (
             <Badge style={{ backgroundColor: '#949492', color: 'white' }}>
               Destaque
@@ -42,7 +76,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
         </div>
         
         {/* Actions */}
-        <div className="absolute top-3 right-3 flex gap-2">
+        <div className="absolute top-3 right-3 flex gap-2 z-10">
           <Button
             size="icon"
             variant="secondary"
@@ -61,7 +95,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
         </div>
 
         {/* Price Overlay */}
-        <div className="absolute bottom-3 left-3">
+        <div className="absolute bottom-3 left-3 z-10">
           <div className="text-white px-3 py-1 rounded-full text-lg font-bold" style={{ backgroundColor: '#1d2846' }}>
             R$ {property.price.toLocaleString('pt-BR')}
           </div>
