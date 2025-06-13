@@ -44,6 +44,7 @@ const Index = () => {
 
   const fetchProperties = async () => {
     try {
+      console.log('Fetching properties...');
       const { data, error } = await supabase
         .from('properties')
         .select('*')
@@ -51,7 +52,12 @@ const Index = () => {
         .order('featured', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching properties:', error);
+        throw error;
+      }
+      
+      console.log('Properties fetched:', data?.length || 0);
       setProperties(data || []);
     } catch (error) {
       console.error('Error fetching properties:', error);
