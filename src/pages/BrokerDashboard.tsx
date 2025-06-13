@@ -30,11 +30,11 @@ interface Appointment {
   profiles: {
     full_name: string;
     phone?: string;
-  };
+  } | null;
   properties: {
     title: string;
     location: string;
-  };
+  } | null;
 }
 
 const BrokerDashboard = () => {
@@ -77,10 +77,13 @@ const BrokerDashboard = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (leadsError) throw leadsError;
+      if (leadsError) {
+        console.error('Error fetching leads:', leadsError);
+        throw leadsError;
+      }
       setLeads(leadsData || []);
 
-      // Fetch appointments
+      // Fetch appointments with proper error handling
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
@@ -99,7 +102,12 @@ const BrokerDashboard = () => {
         `)
         .order('appointment_date', { ascending: false });
 
-      if (appointmentsError) throw appointmentsError;
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
+        throw appointmentsError;
+      }
+      
+      console.log('Appointments data:', appointmentsData);
       setAppointments(appointmentsData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -346,11 +354,15 @@ const BrokerDashboard = () => {
                       <div key={appointment.id} className="border rounded-lg p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-semibold">{appointment.properties.title}</h3>
-                            <p className="text-gray-600">{appointment.properties.location}</p>
+                            <h3 className="font-semibold">
+                              {appointment.properties?.title || 'Propriedade não encontrada'}
+                            </h3>
+                            <p className="text-gray-600">
+                              {appointment.properties?.location || 'Localização não disponível'}
+                            </p>
                             <p className="text-sm text-gray-500">
-                              Cliente: {appointment.profiles.full_name}
-                              {appointment.profiles.phone && ` - ${appointment.profiles.phone}`}
+                              Cliente: {appointment.profiles?.full_name || 'Nome não disponível'}
+                              {appointment.profiles?.phone && ` - ${appointment.profiles.phone}`}
                             </p>
                           </div>
                           <Badge className={getStatusColor(appointment.status)}>
@@ -376,7 +388,7 @@ const BrokerDashboard = () => {
                         )}
                         
                         <div className="flex gap-2">
-                          {appointment.profiles.phone && (
+                          {appointment.profiles?.phone && (
                             <>
                               <Button size="sm" variant="outline" onClick={() => window.open(`tel:${appointment.profiles.phone}`)}>
                                 <Phone className="h-4 w-4 mr-1" />
