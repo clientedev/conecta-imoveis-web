@@ -28,7 +28,7 @@ export const WhatsAppButton = () => {
         <div className="mb-2 space-y-2">
           <Button
             onClick={handleContactPageClick}
-            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 block"
+            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
             size="icon"
           >
             <MessageCircle className="h-6 w-6" />
