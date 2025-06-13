@@ -36,7 +36,7 @@ export const WhatsAppButton = () => {
           
           <Button
             onClick={handleWhatsAppClick}
-            className="bg-green-500 hover:bg-green-600 text-white rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 block"
+            className="bg-green-500 hover:bg-green-600 text-white rounded-full w-14 h-14 shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
             size="icon"
           >
             <Phone className="h-6 w-6" />
