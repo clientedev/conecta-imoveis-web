@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Users, LogOut, Mail, Phone, Building } from 'lucide-react';
+import { Calendar, Users, LogOut, Mail, Phone, Building, Trash2, Download, CheckCircle, Clock, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 interface Lead {
   id: string;
@@ -20,6 +21,12 @@ interface Lead {
   price_range?: string;
   observations?: string;
   created_at: string;
+  status?: string;
+  handled_by?: string;
+  handled_at?: string;
+  profiles?: {
+    full_name: string;
+  } | null;
 }
 
 interface Appointment {
@@ -71,10 +78,15 @@ const BrokerDashboard = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch leads
+      // Fetch leads with handler information
       const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          profiles:handled_by (
+            full_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (leadsError) {
@@ -126,6 +138,206 @@ const BrokerDashboard = () => {
     navigate('/');
   };
 
+  const updateLeadStatus = async (leadId: string, status: string) => {
+    try {
+      const updateData: any = { 
+        status,
+        handled_by: status === 'novo' ? null : user?.id,
+        handled_at: status === 'atendido' ? new Date().toISOString() : null
+      };
+
+      const { error } = await supabase
+        .from('leads')
+        .update(updateData)
+        .eq('id', leadId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Status do lead atualizado com sucesso"
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar status do lead",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteLead = async (leadId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este lead?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', leadId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Lead excluído com sucesso"
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir lead",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updateAppointmentStatus = async (appointmentId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Status do agendamento atualizado com sucesso"
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar status do agendamento",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteAppointment = async (appointmentId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Agendamento excluído com sucesso"
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir agendamento",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const generateLeadsPDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(20);
+      doc.text('Relatório de Leads', 20, 20);
+      
+      // Data de geração
+      doc.setFontSize(12);
+      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 35);
+      
+      let yPosition = 50;
+      
+      leads.forEach((lead, index) => {
+        // Verificar se precisa de nova página
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        // Informações do lead
+        doc.setFontSize(14);
+        doc.text(`${index + 1}. ${lead.name}`, 20, yPosition);
+        yPosition += 8;
+        
+        doc.setFontSize(10);
+        doc.text(`Email: ${lead.email}`, 25, yPosition);
+        yPosition += 6;
+        
+        doc.text(`Telefone: ${lead.phone}`, 25, yPosition);
+        yPosition += 6;
+        
+        if (lead.property_type) {
+          doc.text(`Tipo de imóvel: ${lead.property_type}`, 25, yPosition);
+          yPosition += 6;
+        }
+        
+        if (lead.location_interest) {
+          doc.text(`Localização de interesse: ${lead.location_interest}`, 25, yPosition);
+          yPosition += 6;
+        }
+        
+        if (lead.price_range) {
+          doc.text(`Faixa de preço: ${lead.price_range}`, 25, yPosition);
+          yPosition += 6;
+        }
+        
+        const status = lead.status || 'novo';
+        doc.text(`Status: ${status}`, 25, yPosition);
+        yPosition += 6;
+        
+        if (lead.profiles?.full_name) {
+          doc.text(`Atendido por: ${lead.profiles.full_name}`, 25, yPosition);
+          yPosition += 6;
+        }
+        
+        if (lead.handled_at) {
+          doc.text(`Data de atendimento: ${new Date(lead.handled_at).toLocaleDateString('pt-BR')}`, 25, yPosition);
+          yPosition += 6;
+        }
+        
+        doc.text(`Criado em: ${new Date(lead.created_at).toLocaleDateString('pt-BR')}`, 25, yPosition);
+        yPosition += 6;
+        
+        if (lead.observations) {
+          doc.text(`Observações: ${lead.observations}`, 25, yPosition);
+          yPosition += 6;
+        }
+        
+        yPosition += 10; // Espaço entre leads
+      });
+      
+      // Salvar o PDF
+      doc.save(`leads-relatorio-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "Sucesso",
+        description: "Relatório PDF gerado com sucesso"
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao gerar relatório PDF",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'bg-green-500';
@@ -143,6 +355,24 @@ const BrokerDashboard = () => {
       case 'cancelled': return 'Cancelado';
       case 'completed': return 'Concluído';
       default: return status;
+    }
+  };
+
+  const getLeadStatusColor = (status: string) => {
+    switch (status) {
+      case 'novo': return 'bg-blue-500';
+      case 'em_atendimento': return 'bg-yellow-500';
+      case 'atendido': return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getLeadStatusText = (status: string) => {
+    switch (status) {
+      case 'novo': return 'Novo';
+      case 'em_atendimento': return 'Em Atendimento';
+      case 'atendido': return 'Atendido';
+      default: return 'Novo';
     }
   };
 
@@ -237,13 +467,21 @@ const BrokerDashboard = () => {
           <TabsContent value="leads">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  Leads Recebidos
-                </CardTitle>
-                <CardDescription>
-                  Leads capturados através do site
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <Users className="h-5 w-5 mr-2" />
+                      Leads Recebidos
+                    </CardTitle>
+                    <CardDescription>
+                      Leads capturados através do site
+                    </CardDescription>
+                  </div>
+                  <Button onClick={generateLeadsPDF} className="bg-red-600 hover:bg-red-700">
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar PDF
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {leads.length === 0 ? (
@@ -268,7 +506,11 @@ const BrokerDashboard = () => {
                               })}
                             </p>
                           </div>
-                          <Badge variant="secondary">Novo Lead</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge className={getLeadStatusColor(lead.status || 'novo')}>
+                              {getLeadStatusText(lead.status || 'novo')}
+                            </Badge>
+                          </div>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
@@ -305,8 +547,14 @@ const BrokerDashboard = () => {
                             <strong>Observações:</strong> {lead.observations}
                           </div>
                         )}
+
+                        {lead.profiles?.full_name && (
+                          <div className="mb-3">
+                            <strong>Atendido por:</strong> {lead.profiles.full_name}
+                          </div>
+                        )}
                         
-                        <div className="flex gap-2 mt-4">
+                        <div className="flex gap-2 mt-4 flex-wrap">
                           <Button size="sm" onClick={() => window.open(`mailto:${lead.email}`)}>
                             <Mail className="h-4 w-4 mr-1" />
                             Email
@@ -321,6 +569,40 @@ const BrokerDashboard = () => {
                             onClick={() => window.open(`https://wa.me/55${lead.phone.replace(/\D/g, '')}`, '_blank')}
                           >
                             WhatsApp
+                          </Button>
+                          
+                          {/* Status Management Buttons */}
+                          {lead.status !== 'em_atendimento' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="bg-yellow-50 hover:bg-yellow-100"
+                              onClick={() => updateLeadStatus(lead.id, 'em_atendimento')}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Em Atendimento
+                            </Button>
+                          )}
+                          
+                          {lead.status !== 'atendido' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="bg-green-50 hover:bg-green-100"
+                              onClick={() => updateLeadStatus(lead.id, 'atendido')}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Marcar Atendido
+                            </Button>
+                          )}
+                          
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => deleteLead(lead.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Excluir
                           </Button>
                         </div>
                       </div>
@@ -387,7 +669,7 @@ const BrokerDashboard = () => {
                           </div>
                         )}
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           {appointment.profiles?.phone && (
                             <>
                               <Button size="sm" variant="outline" onClick={() => window.open(`tel:${appointment.profiles.phone}`)}>
@@ -403,6 +685,28 @@ const BrokerDashboard = () => {
                               </Button>
                             </>
                           )}
+                          
+                          {/* Status Management Buttons */}
+                          {appointment.status !== 'completed' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="bg-blue-50 hover:bg-blue-100"
+                              onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Marcar Realizada
+                            </Button>
+                          )}
+                          
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => deleteAppointment(appointment.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Excluir
+                          </Button>
                         </div>
                       </div>
                     ))}

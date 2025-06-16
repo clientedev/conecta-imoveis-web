@@ -76,6 +76,8 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string
+          handled_at: string | null
+          handled_by: string | null
           id: string
           location_interest: string | null
           name: string
@@ -83,10 +85,13 @@ export type Database = {
           phone: string
           price_range: string | null
           property_type: string | null
+          status: string | null
         }
         Insert: {
           created_at?: string | null
           email: string
+          handled_at?: string | null
+          handled_by?: string | null
           id?: string
           location_interest?: string | null
           name: string
@@ -94,10 +99,13 @@ export type Database = {
           phone: string
           price_range?: string | null
           property_type?: string | null
+          status?: string | null
         }
         Update: {
           created_at?: string | null
           email?: string
+          handled_at?: string | null
+          handled_by?: string | null
           id?: string
           location_interest?: string | null
           name?: string
@@ -105,8 +113,17 @@ export type Database = {
           phone?: string
           price_range?: string | null
           property_type?: string | null
+          status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
