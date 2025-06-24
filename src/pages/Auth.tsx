@@ -22,7 +22,7 @@ const Auth = () => {
     phone: '' 
   });
   
-  const { signIn, signUp, refreshProfile } = useAuth();
+  const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,15 +31,25 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginData.email || !loginData.password) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       const { error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
+        console.error('Login error:', error);
         toast({
           title: "Erro no login",
-          description: error.message,
+          description: error.message || "Erro ao fazer login",
           variant: "destructive"
         });
       } else {
@@ -48,10 +58,7 @@ const Auth = () => {
           description: "Redirecionando..."
         });
         
-        // Refresh profile to get the latest user_type
-        await refreshProfile();
-        
-        // Redirect based on user type - wait a bit for profile to load
+        // Redirect based on login type
         setTimeout(() => {
           if (isCorretorLogin) {
             navigate('/corretor/dashboard');
@@ -61,6 +68,7 @@ const Auth = () => {
         }, 1000);
       }
     } catch (error) {
+      console.error('Login exception:', error);
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado",
@@ -73,6 +81,24 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signupData.email || !signupData.password || !signupData.fullName) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (signupData.password.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -84,22 +110,23 @@ const Auth = () => {
       );
       
       if (error) {
+        console.error('Signup error:', error);
         toast({
           title: "Erro no cadastro",
-          description: error.message,
+          description: error.message || "Erro ao criar conta",
           variant: "destructive"
         });
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Redirecionando para sua área..."
+          description: "Verifique seu email para confirmar a conta."
         });
         
-        setTimeout(() => {
-          navigate('/cliente/dashboard');
-        }, 1000);
+        // Clear form
+        setSignupData({ email: '', password: '', fullName: '', phone: '' });
       }
     } catch (error) {
+      console.error('Signup exception:', error);
       toast({
         title: "Erro no cadastro",
         description: "Ocorreu um erro inesperado",
@@ -146,6 +173,7 @@ const Auth = () => {
                         value={loginData.email}
                         onChange={(e) => setLoginData({...loginData, email: e.target.value})}
                         required
+                        disabled={loading}
                       />
                     </div>
                     
@@ -157,6 +185,7 @@ const Auth = () => {
                         value={loginData.password}
                         onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                         required
+                        disabled={loading}
                       />
                     </div>
                     
@@ -176,13 +205,14 @@ const Auth = () => {
                   <TabsContent value="signup">
                     <form onSubmit={handleSignup} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="fullName">Nome Completo</Label>
+                        <Label htmlFor="fullName">Nome Completo *</Label>
                         <Input
                           id="fullName"
                           type="text"
                           value={signupData.fullName}
                           onChange={(e) => setSignupData({...signupData, fullName: e.target.value})}
                           required
+                          disabled={loading}
                         />
                       </div>
                       
@@ -194,22 +224,24 @@ const Auth = () => {
                           value={signupData.phone}
                           onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
                           placeholder="(11) 99999-9999"
+                          disabled={loading}
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="signupEmail">Email</Label>
+                        <Label htmlFor="signupEmail">Email *</Label>
                         <Input
                           id="signupEmail"
                           type="email"
                           value={signupData.email}
                           onChange={(e) => setSignupData({...signupData, email: e.target.value})}
                           required
+                          disabled={loading}
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="signupPassword">Senha</Label>
+                        <Label htmlFor="signupPassword">Senha * (mín. 6 caracteres)</Label>
                         <Input
                           id="signupPassword"
                           type="password"
@@ -217,6 +249,7 @@ const Auth = () => {
                           onChange={(e) => setSignupData({...signupData, password: e.target.value})}
                           required
                           minLength={6}
+                          disabled={loading}
                         />
                       </div>
                       

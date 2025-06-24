@@ -39,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -51,6 +52,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('Error fetching profile:', error);
+        // Se o perfil não existe, criar um novo
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating new profile...');
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: userId,
+                user_type: 'client',
+                is_active: true,
+                is_admin: false
+              }
+            ])
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Error creating profile:', createError);
+          } else if (newProfile) {
+            console.log('New profile created:', newProfile);
+            setProfile({
+              ...newProfile,
+              user_type: newProfile.user_type as 'client' | 'broker' | 'admin'
+            });
+          }
+        }
         return;
       }
       
@@ -73,74 +100,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
-    // Get initial session
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Initializing auth...');
+        
+        // Get initial session
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('Error getting initial session:', error);
         }
         
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
+        if (isMounted) {
+          console.log('Initial session:', initialSession?.user?.email || 'No session');
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
           
-          if (session?.user) {
-            await fetchProfile(session.user.id);
+          if (initialSession?.user) {
+            await fetchProfile(initialSession.user.id);
           }
+          
+          setInitialized(true);
           setLoading(false);
         }
       } catch (error) {
-        console.error('Error in getInitialSession:', error);
-        if (mounted) {
+        console.error('Error in initializeAuth:', error);
+        if (isMounted) {
+          setInitialized(true);
           setLoading(false);
         }
       }
     };
 
-    getInitialSession();
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        if (!isMounted || !initialized) return;
         
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            await fetchProfile(session.user.id);
-          } else {
-            setProfile(null);
-          }
-          setLoading(false);
+        console.log('Auth state changed:', event, session?.user?.email || 'No user');
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Use setTimeout to prevent blocking the auth state change
+          setTimeout(() => {
+            if (isMounted) {
+              fetchProfile(session.user.id);
+            }
+          }, 0);
+        } else {
+          setProfile(null);
         }
       }
     );
 
     return () => {
-      mounted = false;
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initialized]);
 
   const signUp = async (email: string, password: string, fullName: string, phone?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          phone: phone
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: fullName,
+            phone: phone
+          }
         }
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error);
+        return { error };
       }
-    });
-    
-    return { error };
+      
+      console.log('Sign up successful:', data.user?.email);
+      return { error: null };
+    } catch (error) {
+      console.error('Sign up exception:', error);
+      return { error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
@@ -166,16 +217,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       console.log('Signing out...');
+      
+      // Clear local state first
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Error signing out:', error);
       } else {
         console.log('Successfully signed out');
-        // Clear local state immediately
-        setUser(null);
-        setSession(null);
-        setProfile(null);
       }
     } catch (error) {
       console.error('Exception during sign out:', error);
