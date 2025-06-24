@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,6 +76,7 @@ const BrokerDashboard = () => {
   }, [user, profile, navigate]);
 
   const fetchData = async () => {
+    console.log('Fetching leads and appointments data...');
     try {
       // Fetch leads with handler information
       const { data: leadsData, error: leadsError } = await supabase
@@ -93,6 +93,8 @@ const BrokerDashboard = () => {
         console.error('Error fetching leads:', leadsError);
         throw leadsError;
       }
+      
+      console.log('Leads fetched:', leadsData?.length || 0);
       setLeads(leadsData || []);
 
       // Fetch appointments with proper error handling
@@ -139,6 +141,8 @@ const BrokerDashboard = () => {
   };
 
   const updateLeadStatus = async (leadId: string, status: string) => {
+    console.log(`Updating lead ${leadId} status to:`, status);
+    
     try {
       const updateData: any = { 
         status,
@@ -146,19 +150,28 @@ const BrokerDashboard = () => {
         handled_at: status === 'atendido' ? new Date().toISOString() : null
       };
 
+      console.log('Update data:', updateData);
+
       const { error } = await supabase
         .from('leads')
         .update(updateData)
         .eq('id', leadId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating lead status:', error);
+        throw error;
+      }
+
+      console.log('Lead status updated successfully');
 
       toast({
         title: "Sucesso",
         description: "Status do lead atualizado com sucesso"
       });
 
-      fetchData();
+      // Force immediate refresh
+      await fetchData();
+      
     } catch (error) {
       console.error('Error updating lead status:', error);
       toast({
@@ -172,20 +185,29 @@ const BrokerDashboard = () => {
   const deleteLead = async (leadId: string) => {
     if (!confirm('Tem certeza que deseja excluir este lead?')) return;
 
+    console.log('Deleting lead:', leadId);
+
     try {
       const { error } = await supabase
         .from('leads')
         .delete()
         .eq('id', leadId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting lead:', error);
+        throw error;
+      }
+
+      console.log('Lead deleted successfully');
 
       toast({
         title: "Sucesso",
         description: "Lead excluído com sucesso"
       });
 
-      fetchData();
+      // Force immediate refresh
+      await fetchData();
+      
     } catch (error) {
       console.error('Error deleting lead:', error);
       toast({
@@ -197,20 +219,29 @@ const BrokerDashboard = () => {
   };
 
   const updateAppointmentStatus = async (appointmentId: string, status: string) => {
+    console.log(`Updating appointment ${appointmentId} status to:`, status);
+    
     try {
       const { error } = await supabase
         .from('appointments')
         .update({ status })
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating appointment status:', error);
+        throw error;
+      }
+
+      console.log('Appointment status updated successfully');
 
       toast({
         title: "Sucesso",
         description: "Status do agendamento atualizado com sucesso"
       });
 
-      fetchData();
+      // Force immediate refresh
+      await fetchData();
+      
     } catch (error) {
       console.error('Error updating appointment status:', error);
       toast({
@@ -224,20 +255,29 @@ const BrokerDashboard = () => {
   const deleteAppointment = async (appointmentId: string) => {
     if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
 
+    console.log('Deleting appointment:', appointmentId);
+
     try {
       const { error } = await supabase
         .from('appointments')
         .delete()
         .eq('id', appointmentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting appointment:', error);
+        throw error;
+      }
+
+      console.log('Appointment deleted successfully');
 
       toast({
         title: "Sucesso",
         description: "Agendamento excluído com sucesso"
       });
 
-      fetchData();
+      // Force immediate refresh
+      await fetchData();
+      
     } catch (error) {
       console.error('Error deleting appointment:', error);
       toast({
