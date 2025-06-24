@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -119,10 +120,10 @@ const Auth = () => {
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar a conta."
+          description: "Você já pode fazer login com sua conta."
         });
         
-        // Clear form
+        // Clear form and redirect to login tab
         setSignupData({ email: '', password: '', fullName: '', phone: '' });
       }
     } catch (error) {
@@ -179,9 +180,8 @@ const Auth = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="password">Senha</Label>
-                      <Input
+                      <PasswordInput
                         id="password"
-                        type="password"
                         value={loginData.password}
                         onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                         required
@@ -242,9 +242,8 @@ const Auth = () => {
                       
                       <div className="space-y-2">
                         <Label htmlFor="signupPassword">Senha * (mín. 6 caracteres)</Label>
-                        <Input
+                        <PasswordInput
                           id="signupPassword"
-                          type="password"
                           value={signupData.password}
                           onChange={(e) => setSignupData({...signupData, password: e.target.value})}
                           required
