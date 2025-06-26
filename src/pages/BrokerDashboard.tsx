@@ -170,11 +170,11 @@ const BrokerDashboard = () => {
 
       console.log('Update data:', updateData);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
         .update(updateData)
         .eq('id', leadId)
-        .select();
+        .select()
 
       if (error) {
         console.error('Error updating lead status:', error);
@@ -182,10 +182,6 @@ const BrokerDashboard = () => {
       }
 
       console.log('Lead status updated successfully:', data);
-
-      if (!data || data.length === 0) {
-        throw new Error('Nenhuma linha foi atualizada');
-      }
 
       toast({
         title: "Sucesso",
@@ -211,20 +207,6 @@ const BrokerDashboard = () => {
     console.log('Deleting lead:', leadId);
 
     try {
-      // First, verify the lead exists
-      const { data: existingLead, error: checkError } = await supabase
-        .from('leads')
-        .select('id')
-        .eq('id', leadId)
-        .single();
-
-      if (checkError) {
-        console.error('Lead not found:', checkError);
-        throw new Error('Lead não encontrado');
-      }
-
-      console.log('Lead exists, proceeding with deletion:', existingLead);
-
       const { data, error } = await supabase
         .from('leads')
         .delete()
@@ -237,10 +219,6 @@ const BrokerDashboard = () => {
       }
 
       console.log('Lead deleted successfully:', data);
-
-      if (!data || data.length === 0) {
-        throw new Error('Nenhuma linha foi excluída');
-      }
 
       toast({
         title: "Sucesso",
