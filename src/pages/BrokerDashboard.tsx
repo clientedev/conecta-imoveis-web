@@ -78,12 +78,12 @@ const BrokerDashboard = () => {
   const fetchData = async () => {
     console.log('Fetching leads and appointments data...');
     try {
-      // Fetch leads with handler information
+      // Fetch leads with handler information - Fixed query
       const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
         .select(`
           *,
-          profiles:handled_by (
+          profiles!leads_handled_by_fkey (
             full_name
           )
         `)
@@ -95,6 +95,7 @@ const BrokerDashboard = () => {
       }
       
       console.log('Leads fetched:', leadsData?.length || 0);
+      console.log('Leads data:', leadsData);
       setLeads(leadsData || []);
 
       // Fetch appointments with proper error handling
@@ -152,17 +153,18 @@ const BrokerDashboard = () => {
 
       console.log('Update data:', updateData);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
         .update(updateData)
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select();
 
       if (error) {
         console.error('Error updating lead status:', error);
         throw error;
       }
 
-      console.log('Lead status updated successfully');
+      console.log('Lead status updated successfully:', data);
 
       toast({
         title: "Sucesso",
@@ -188,17 +190,18 @@ const BrokerDashboard = () => {
     console.log('Deleting lead:', leadId);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
         .delete()
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select();
 
       if (error) {
         console.error('Error deleting lead:', error);
         throw error;
       }
 
-      console.log('Lead deleted successfully');
+      console.log('Lead deleted successfully:', data);
 
       toast({
         title: "Sucesso",
@@ -589,8 +592,19 @@ const BrokerDashboard = () => {
                         )}
 
                         {lead.profiles?.full_name && (
-                          <div className="mb-3">
+                          <div className="mb-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
                             <strong>Atendido por:</strong> {lead.profiles.full_name}
+                            {lead.handled_at && (
+                              <span className="text-sm text-gray-600 ml-2">
+                                em {new Date(lead.handled_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            )}
                           </div>
                         )}
                         
