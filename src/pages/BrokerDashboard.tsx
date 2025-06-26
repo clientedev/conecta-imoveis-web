@@ -78,15 +78,10 @@ const BrokerDashboard = () => {
   const fetchData = async () => {
     console.log('Fetching leads and appointments data...');
     try {
-      // Fetch leads with handler information - Fixed query
+      // Fetch leads with handler information - Simplified query first
       const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
-        .select(`
-          *,
-          profiles!leads_handled_by_fkey (
-            full_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (leadsError) {
@@ -95,8 +90,29 @@ const BrokerDashboard = () => {
       }
       
       console.log('Leads fetched:', leadsData?.length || 0);
-      console.log('Leads data:', leadsData);
-      setLeads(leadsData || []);
+      console.log('Raw leads data:', leadsData);
+
+      // Now fetch profile information for each lead that has handled_by
+      const leadsWithProfiles = await Promise.all(
+        (leadsData || []).map(async (lead) => {
+          if (lead.handled_by) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', lead.handled_by)
+              .single();
+            
+            return {
+              ...lead,
+              profiles: profileData
+            };
+          }
+          return lead;
+        })
+      );
+
+      console.log('Leads with profiles:', leadsWithProfiles);
+      setLeads(leadsWithProfiles);
 
       // Fetch appointments with proper error handling
       const { data: appointmentsData, error: appointmentsError } = await supabase
@@ -143,6 +159,7 @@ const BrokerDashboard = () => {
 
   const updateLeadStatus = async (leadId: string, status: string) => {
     console.log(`Updating lead ${leadId} status to:`, status);
+    console.log('Current user ID:', user?.id);
     
     try {
       const updateData: any = { 
@@ -153,6 +170,21 @@ const BrokerDashboard = () => {
 
       console.log('Update data:', updateData);
 
+      // First, verify the lead exists
+      const { data: existingLead, error: checkError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('id', leadId)
+        .single();
+
+      if (checkError) {
+        console.error('Lead not found:', checkError);
+        throw new Error('Lead não encontrado');
+      }
+
+      console.log('Lead exists:', existingLead);
+
+      // Now update the lead
       const { data, error } = await supabase
         .from('leads')
         .update(updateData)
@@ -166,6 +198,10 @@ const BrokerDashboard = () => {
 
       console.log('Lead status updated successfully:', data);
 
+      if (!data || data.length === 0) {
+        throw new Error('Nenhuma linha foi atualizada');
+      }
+
       toast({
         title: "Sucesso",
         description: "Status do lead atualizado com sucesso"
@@ -178,7 +214,7 @@ const BrokerDashboard = () => {
       console.error('Error updating lead status:', error);
       toast({
         title: "Erro",
-        description: "Erro ao atualizar status do lead",
+        description: `Erro ao atualizar status do lead: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -190,6 +226,20 @@ const BrokerDashboard = () => {
     console.log('Deleting lead:', leadId);
 
     try {
+      // First, verify the lead exists
+      const { data: existingLead, error: checkError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('id', leadId)
+        .single();
+
+      if (checkError) {
+        console.error('Lead not found:', checkError);
+        throw new Error('Lead não encontrado');
+      }
+
+      console.log('Lead exists, proceeding with deletion:', existingLead);
+
       const { data, error } = await supabase
         .from('leads')
         .delete()
@@ -203,6 +253,10 @@ const BrokerDashboard = () => {
 
       console.log('Lead deleted successfully:', data);
 
+      if (!data || data.length === 0) {
+        throw new Error('Nenhuma linha foi excluída');
+      }
+
       toast({
         title: "Sucesso",
         description: "Lead excluído com sucesso"
@@ -215,7 +269,7 @@ const BrokerDashboard = () => {
       console.error('Error deleting lead:', error);
       toast({
         title: "Erro",
-        description: "Erro ao excluir lead",
+        description: `Erro ao excluir lead: ${error.message}`,
         variant: "destructive"
       });
     }
