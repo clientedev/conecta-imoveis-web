@@ -170,22 +170,7 @@ const BrokerDashboard = () => {
 
       console.log('Update data:', updateData);
 
-      // First, verify the lead exists
-      const { data: existingLead, error: checkError } = await supabase
-        .from('leads')
-        .select('id')
-        .eq('id', leadId)
-        .single();
-
-      if (checkError) {
-        console.error('Lead not found:', checkError);
-        throw new Error('Lead não encontrado');
-      }
-
-      console.log('Lead exists:', existingLead);
-
-      // Now update the lead
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('leads')
         .update(updateData)
         .eq('id', leadId)
