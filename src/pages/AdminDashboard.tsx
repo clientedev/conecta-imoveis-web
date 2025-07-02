@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -156,7 +155,28 @@ const AdminDashboard = () => {
 
   const fetchLeads = async () => {
     console.log('Admin Dashboard - Fetching leads...');
+    console.log('Admin Dashboard - Current user:', user);
+    
     try {
+      // Primeiro, verificar se o usuário é admin
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_type, is_admin')
+        .eq('id', user?.id)
+        .single();
+
+      if (profileError) {
+        console.error('Admin Dashboard - Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      console.log('Admin Dashboard - User profile:', profileData);
+
+      if (!profileData || (profileData.user_type !== 'admin' && !profileData.is_admin)) {
+        console.log('Admin Dashboard - User is not admin, cannot fetch leads');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -168,7 +188,7 @@ const AdminDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching leads:', error);
+        console.error('Admin Dashboard - Error fetching leads:', error);
         throw error;
       }
       
@@ -176,7 +196,7 @@ const AdminDashboard = () => {
       console.log('Admin Dashboard - Leads data:', data);
       setLeads(data || []);
     } catch (error) {
-      console.error('Error fetching leads:', error);
+      console.error('Admin Dashboard - Error fetching leads:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os leads",
@@ -1135,6 +1155,13 @@ const AdminDashboard = () => {
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                     <p className="text-gray-600">Nenhum lead encontrado</p>
+                    <Button 
+                      onClick={fetchLeads} 
+                      variant="outline" 
+                      className="mt-4"
+                    >
+                      Recarregar Leads
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
