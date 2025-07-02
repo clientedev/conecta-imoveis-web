@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -146,37 +145,44 @@ const BrokerDashboard = () => {
   const updateLeadStatus = async (leadId: string, status: string) => {
     console.log(`Updating lead ${leadId} status to:`, status);
     console.log('Current user ID:', user?.id);
+    console.log('Current profile:', profile);
     
     try {
       const updateData: any = { 
         status,
         handled_by: status === 'novo' ? null : user?.id,
-        handled_at: status === 'atendido' ? new Date().toISOString() : null
+        handled_at: status === 'atendido' ? new Date().toISOString() : (status === 'em_atendimento' ? new Date().toISOString() : null)
       };
 
       console.log('Update data:', updateData);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
         .update(updateData)
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select(`
+          *,
+          profiles!leads_handled_by_fkey (
+            full_name
+          )
+        `);
 
       if (error) {
         console.error('Error updating lead status:', error);
         throw error;
       }
 
-      console.log('Lead status updated successfully');
+      console.log('Lead status updated successfully:', data);
 
       toast({
         title: "Sucesso",
         description: "Status do lead atualizado com sucesso"
       });
 
-      // Force immediate refresh
+      // Force immediate refresh to get updated data with profile info
       await fetchData();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating lead status:', error);
       toast({
         title: "Erro",
@@ -192,17 +198,18 @@ const BrokerDashboard = () => {
     console.log('Deleting lead:', leadId);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
         .delete()
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select();
 
       if (error) {
         console.error('Error deleting lead:', error);
         throw error;
       }
 
-      console.log('Lead deleted successfully');
+      console.log('Lead deleted successfully:', data);
 
       toast({
         title: "Sucesso",
@@ -212,7 +219,7 @@ const BrokerDashboard = () => {
       // Force immediate refresh
       await fetchData();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting lead:', error);
       toast({
         title: "Erro",
