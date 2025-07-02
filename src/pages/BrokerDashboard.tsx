@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,10 +79,15 @@ const BrokerDashboard = () => {
   const fetchData = async () => {
     console.log('Fetching leads and appointments data...');
     try {
-      // Fetch leads with handler information - Simplified query first
+      // Fetch leads with handler information
       const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          profiles!leads_handled_by_fkey (
+            full_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (leadsError) {
@@ -92,27 +98,7 @@ const BrokerDashboard = () => {
       console.log('Leads fetched:', leadsData?.length || 0);
       console.log('Raw leads data:', leadsData);
 
-      // Now fetch profile information for each lead that has handled_by
-      const leadsWithProfiles = await Promise.all(
-        (leadsData || []).map(async (lead) => {
-          if (lead.handled_by) {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', lead.handled_by)
-              .single();
-            
-            return {
-              ...lead,
-              profiles: profileData
-            };
-          }
-          return lead;
-        })
-      );
-
-      console.log('Leads with profiles:', leadsWithProfiles);
-      setLeads(leadsWithProfiles);
+      setLeads(leadsData || []);
 
       // Fetch appointments with proper error handling
       const { data: appointmentsData, error: appointmentsError } = await supabase
@@ -170,18 +156,17 @@ const BrokerDashboard = () => {
 
       console.log('Update data:', updateData);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('leads')
         .update(updateData)
-        .eq('id', leadId)
-        .select()
+        .eq('id', leadId);
 
       if (error) {
         console.error('Error updating lead status:', error);
         throw error;
       }
 
-      console.log('Lead status updated successfully:', data);
+      console.log('Lead status updated successfully');
 
       toast({
         title: "Sucesso",
@@ -207,18 +192,17 @@ const BrokerDashboard = () => {
     console.log('Deleting lead:', leadId);
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('leads')
         .delete()
-        .eq('id', leadId)
-        .select();
+        .eq('id', leadId);
 
       if (error) {
         console.error('Error deleting lead:', error);
         throw error;
       }
 
-      console.log('Lead deleted successfully:', data);
+      console.log('Lead deleted successfully');
 
       toast({
         title: "Sucesso",
@@ -608,8 +592,26 @@ const BrokerDashboard = () => {
                           </div>
                         )}
 
-                        {lead.profiles?.full_name && (
-                          <div className="mb-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                        {/* Status do atendimento */}
+                        {lead.status === 'em_atendimento' && lead.profiles?.full_name && (
+                          <div className="mb-3 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
+                            <strong>Sendo atendido por:</strong> {lead.profiles.full_name}
+                            {lead.handled_at && (
+                              <span className="text-sm text-gray-600 ml-2">
+                                desde {new Date(lead.handled_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {lead.status === 'atendido' && lead.profiles?.full_name && (
+                          <div className="mb-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
                             <strong>Atendido por:</strong> {lead.profiles.full_name}
                             {lead.handled_at && (
                               <span className="text-sm text-gray-600 ml-2">
@@ -651,11 +653,11 @@ const BrokerDashboard = () => {
                               onClick={() => updateLeadStatus(lead.id, 'em_atendimento')}
                             >
                               <Clock className="h-4 w-4 mr-1" />
-                              Em Atendimento
+                              Iniciar Atendimento
                             </Button>
                           )}
                           
-                          {lead.status !== 'atendido' && (
+                          {lead.status === 'em_atendimento' && (
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -663,7 +665,7 @@ const BrokerDashboard = () => {
                               onClick={() => updateLeadStatus(lead.id, 'atendido')}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
-                              Marcar Atendido
+                              Finalizar Atendimento
                             </Button>
                           )}
                           
