@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -154,21 +155,33 @@ const AdminDashboard = () => {
   };
 
   const fetchLeads = async () => {
+    console.log('Admin Dashboard - Fetching leads...');
     try {
       const { data, error } = await supabase
         .from('leads')
         .select(`
           *,
-          profiles:handled_by (
+          profiles!leads_handled_by_fkey (
             full_name
           )
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching leads:', error);
+        throw error;
+      }
+      
+      console.log('Admin Dashboard - Leads fetched:', data?.length || 0);
+      console.log('Admin Dashboard - Leads data:', data);
       setLeads(data || []);
     } catch (error) {
       console.error('Error fetching leads:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os leads",
+        variant: "destructive"
+      });
     }
   };
 
@@ -227,32 +240,50 @@ const AdminDashboard = () => {
   };
 
   const updateLeadStatus = async (leadId: string, status: string) => {
+    console.log(`Admin Dashboard - Updating lead ${leadId} status to:`, status);
+    console.log('Admin Dashboard - Current user ID:', user?.id);
+    
     try {
       const updateData: any = { 
         status,
         handled_by: status === 'novo' ? null : user?.id,
-        handled_at: status === 'atendido' ? new Date().toISOString() : null
+        handled_at: status === 'atendido' ? new Date().toISOString() : (status === 'em_atendimento' ? new Date().toISOString() : null)
       };
 
-      const { error } = await supabase
+      console.log('Admin Dashboard - Update data:', updateData);
+
+      const { data, error } = await supabase
         .from('leads')
         .update(updateData)
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select(`
+          *,
+          profiles!leads_handled_by_fkey (
+            full_name
+          )
+        `);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Admin Dashboard - Error updating lead status:', error);
+        throw error;
+      }
+
+      console.log('Admin Dashboard - Lead status updated successfully:', data);
 
       toast({
         title: "Sucesso",
         description: "Status do lead atualizado com sucesso"
       });
 
-      fetchLeads();
-      fetchStats();
-    } catch (error) {
-      console.error('Error updating lead status:', error);
+      // Force immediate refresh to get updated data with profile info
+      await fetchLeads();
+      await fetchStats();
+      
+    } catch (error: any) {
+      console.error('Admin Dashboard - Error updating lead status:', error);
       toast({
         title: "Erro",
-        description: "Erro ao atualizar status do lead",
+        description: `Erro ao atualizar status do lead: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -261,26 +292,36 @@ const AdminDashboard = () => {
   const deleteLead = async (leadId: string) => {
     if (!confirm('Tem certeza que deseja excluir este lead?')) return;
 
+    console.log('Admin Dashboard - Deleting lead:', leadId);
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
         .delete()
-        .eq('id', leadId);
+        .eq('id', leadId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Admin Dashboard - Error deleting lead:', error);
+        throw error;
+      }
+
+      console.log('Admin Dashboard - Lead deleted successfully:', data);
 
       toast({
         title: "Sucesso",
         description: "Lead excluído com sucesso"
       });
 
-      fetchLeads();
-      fetchStats();
-    } catch (error) {
-      console.error('Error deleting lead:', error);
+      // Force immediate refresh
+      await fetchLeads();
+      await fetchStats();
+      
+    } catch (error: any) {
+      console.error('Admin Dashboard - Error deleting lead:', error);
       toast({
         title: "Erro",
-        description: "Erro ao excluir lead",
+        description: `Erro ao excluir lead: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -1081,7 +1122,7 @@ const AdminDashboard = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle style={{ color: '#1d2846' }}>Gerenciar Leads</CardTitle>
-                    <CardDescription>Leads capturados pelo site - visão completa para administração</CardDescription>
+                    <CardDescription>Leads capturados pelo site - controle total de administração</CardDescription>
                   </div>
                   <Button onClick={generateLeadsPDF} className="bg-red-600 hover:bg-red-700">
                     <Download className="h-4 w-4 mr-2" />
@@ -1154,9 +1195,38 @@ const AdminDashboard = () => {
                           </div>
                         )}
 
-                        {lead.profiles?.full_name && (
-                          <div className="mb-3">
+                        {/* Status do atendimento */}
+                        {lead.status === 'em_atendimento' && lead.profiles?.full_name && (
+                          <div className="mb-3 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
+                            <strong>Sendo atendido por:</strong> {lead.profiles.full_name}
+                            {lead.handled_at && (
+                              <span className="text-sm text-gray-600 ml-2">
+                                desde {new Date(lead.handled_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {lead.status === 'atendido' && lead.profiles?.full_name && (
+                          <div className="mb-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
                             <strong>Atendido por:</strong> {lead.profiles.full_name}
+                            {lead.handled_at && (
+                              <span className="text-sm text-gray-600 ml-2">
+                                em {new Date(lead.handled_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            )}
                           </div>
                         )}
                         
@@ -1177,7 +1247,7 @@ const AdminDashboard = () => {
                             WhatsApp
                           </Button>
                           
-                          {/* Status Management Buttons */}
+                          {/* Status Management Buttons - Admin pode fazer tudo */}
                           {lead.status !== 'em_atendimento' && (
                             <Button 
                               size="sm" 
@@ -1186,11 +1256,11 @@ const AdminDashboard = () => {
                               onClick={() => updateLeadStatus(lead.id, 'em_atendimento')}
                             >
                               <Clock className="h-4 w-4 mr-1" />
-                              Em Atendimento
+                              Iniciar Atendimento
                             </Button>
                           )}
                           
-                          {lead.status !== 'atendido' && (
+                          {lead.status === 'em_atendimento' && (
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -1198,7 +1268,7 @@ const AdminDashboard = () => {
                               onClick={() => updateLeadStatus(lead.id, 'atendido')}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
-                              Marcar Atendido
+                              Finalizar Atendimento
                             </Button>
                           )}
                           
