@@ -58,7 +58,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
   };
 
   return (
-    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white w-full max-w-sm mx-auto">
       <div className="relative">
         <PropertyCarousel 
           images={images}
@@ -96,46 +96,46 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
 
         {/* Price Overlay */}
         <div className="absolute bottom-3 left-3 z-10">
-          <div className="text-white px-3 py-1 rounded-full text-lg font-bold" style={{ backgroundColor: '#1d2846' }}>
+          <div className="text-white px-3 py-1 rounded-full text-lg font-bold whitespace-nowrap" style={{ backgroundColor: '#1d2846' }}>
             R$ {property.price.toLocaleString('pt-BR')}
           </div>
         </div>
       </div>
 
       <CardContent className="p-4">
-        <h3 className="font-semibold text-lg mb-2 line-clamp-2" style={{ color: '#1d2846' }}>{property.title}</h3>
+        <h3 className="font-semibold text-lg mb-2 line-clamp-2 break-words" style={{ color: '#1d2846' }}>{property.title}</h3>
         
-        <div className="flex items-center text-gray-600 mb-3">
-          <MapPin className="h-4 w-4 mr-1" />
-          <span className="text-sm">{property.location}</span>
+        <div className="flex items-center text-gray-600 mb-3 min-w-0">
+          <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+          <span className="text-sm truncate">{property.location}</span>
         </div>
 
         <div className="flex justify-between items-center text-sm text-gray-600">
-          <div className="flex items-center gap-1">
-            <Bed className="h-4 w-4" />
-            <span>{property.bedrooms || '-'}</span>
+          <div className="flex items-center gap-1 min-w-0">
+            <Bed className="h-4 w-4 flex-shrink-0" />
+            <span className="whitespace-nowrap">{property.bedrooms || '-'}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Bath className="h-4 w-4" />
-            <span>{property.bathrooms || '-'}</span>
+          <div className="flex items-center gap-1 min-w-0">
+            <Bath className="h-4 w-4 flex-shrink-0" />
+            <span className="whitespace-nowrap">{property.bathrooms || '-'}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Ruler className="h-4 w-4" />
-            <span>{property.area || '-'}</span>
+          <div className="flex items-center gap-1 min-w-0">
+            <Ruler className="h-4 w-4 flex-shrink-0" />
+            <span className="whitespace-nowrap truncate">{property.area || '-'}</span>
           </div>
         </div>
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button variant="outline" className="flex-1" asChild>
+        <Button variant="outline" className="flex-1 min-w-0" asChild>
           <Link to={`/imovel/${property.id}`}>
-            Ver Detalhes
+            <span className="truncate">Ver Detalhes</span>
           </Link>
         </Button>
-        <Button className="flex-1 bg-green-600 hover:bg-green-700" asChild>
+        <Button className="flex-1 bg-green-600 hover:bg-green-700 min-w-0" asChild>
           <Link to={`/agendar-visita/${property.id}`}>
-            <Calendar className="h-4 w-4 mr-2" />
-            Agendar Visita
+            <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">Agendar Visita</span>
           </Link>
         </Button>
       </CardFooter>
