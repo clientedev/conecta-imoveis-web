@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Home, Users, Calendar, TrendingUp, UserCheck, UserX, Mail, Phone, Download, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Home, Users, Calendar, TrendingUp, UserCheck, UserX, Mail, Phone, Download, CheckCircle, Clock, Shield, ShieldOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 
@@ -530,6 +530,56 @@ const AdminDashboard = () => {
       toast({
         title: "Erro",
         description: "Erro ao promover usuário",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const promoteToAdmin = async (userId: string) => {
+    try {
+      const { error } = await supabase.rpc('promote_to_admin', {
+        _user_id: userId
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Usuário promovido para administrador com sucesso"
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error promoting user to admin:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao promover usuário para admin",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const demoteFromAdmin = async (userId: string) => {
+    if (!confirm('Tem certeza que deseja remover os privilégios de administrador deste usuário?')) return;
+
+    try {
+      const { error } = await supabase.rpc('demote_from_admin', {
+        _user_id: userId
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Privilégios de administrador removidos com sucesso"
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error demoting admin:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao remover privilégios de admin",
         variant: "destructive"
       });
     }
@@ -1073,33 +1123,74 @@ const AdminDashboard = () => {
                               <Badge variant={user.is_active ? 'default' : 'destructive'}>
                                 {user.is_active ? 'Ativo' : 'Inativo'}
                               </Badge>
+                              {user.is_admin && (
+                                <Badge className="bg-purple-100 text-purple-800">
+                                  Admin
+                                </Badge>
+                              )}
                             </div>
                           </div>
                           
-                          <div className="flex gap-2">
-                            {user.user_type === 'client' && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => promoteUser(user.id, 'broker')}
-                                style={{ backgroundColor: '#1d2846' }}
-                                className="text-white"
-                              >
-                                <UserCheck className="h-4 w-4 mr-1" />
-                                Promover a Corretor
-                              </Button>
+                          <div className="flex gap-2 flex-wrap">
+                            {/* Botões para usuários que não são admin */}
+                            {user.user_type === 'client' && !user.is_admin && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => promoteUser(user.id, 'broker')}
+                                  style={{ backgroundColor: '#1d2846' }}
+                                  className="text-white"
+                                >
+                                  <UserCheck className="h-4 w-4 mr-1" />
+                                  Promover a Corretor
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => promoteToAdmin(user.id)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                                >
+                                  <Shield className="h-4 w-4 mr-1" />
+                                  Promover a Admin
+                                </Button>
+                              </>
                             )}
                             
-                            {user.user_type === 'broker' && (
+                            {/* Botões para corretores */}
+                            {user.user_type === 'broker' && !user.is_admin && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => promoteUser(user.id, 'client')}
+                                >
+                                  <UserX className="h-4 w-4 mr-1" />
+                                  Remover Corretor
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => promoteToAdmin(user.id)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                                >
+                                  <Shield className="h-4 w-4 mr-1" />
+                                  Promover a Admin
+                                </Button>
+                              </>
+                            )}
+                            
+                            {/* Botões para admins */}
+                            {(user.user_type === 'admin' || user.is_admin) && user.id !== user.id && (
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => promoteUser(user.id, 'client')}
+                                onClick={() => demoteFromAdmin(user.id)}
+                                className="border-red-300 text-red-600 hover:bg-red-50"
                               >
-                                <UserX className="h-4 w-4 mr-1" />
-                                Remover Corretor
+                                <ShieldOff className="h-4 w-4 mr-1" />
+                                Remover Admin
                               </Button>
                             )}
                             
+                            {/* Botão de ativar/desativar para todos */}
                             <Button 
                               size="sm" 
                               variant={user.is_active ? "destructive" : "default"}

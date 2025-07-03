@@ -249,12 +249,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      demote_from_admin: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["user_role"]
         }
         Returns: boolean
+      }
+      promote_to_admin: {
+        Args: { _user_id: string }
+        Returns: undefined
       }
       promote_to_broker: {
         Args: { _user_id: string }
