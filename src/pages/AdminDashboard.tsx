@@ -158,25 +158,6 @@ const AdminDashboard = () => {
     console.log('Admin Dashboard - Current user:', user);
     
     try {
-      // Primeiro, verificar se o usuário é admin
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_type, is_admin')
-        .eq('id', user?.id)
-        .single();
-
-      if (profileError) {
-        console.error('Admin Dashboard - Error fetching profile:', profileError);
-        throw profileError;
-      }
-
-      console.log('Admin Dashboard - User profile:', profileData);
-
-      if (!profileData || (profileData.user_type !== 'admin' && !profileData.is_admin)) {
-        console.log('Admin Dashboard - User is not admin, cannot fetch leads');
-        return;
-      }
-
       const { data, error } = await supabase
         .from('leads')
         .select(`
