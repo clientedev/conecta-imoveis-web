@@ -18,6 +18,7 @@ import {
   Plus,
   ArrowLeft
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -158,6 +159,31 @@ const BrokerDashboard = () => {
     }
   };
 
+  const updateLeadObservations = async (leadId: string, observations: string) => {
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ observations })
+        .eq('id', leadId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Observações atualizadas com sucesso!",
+      });
+
+      fetchLeads();
+    } catch (error) {
+      console.error('Error updating observations:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar observações",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleAddPropertySuccess = () => {
     setShowAddProperty(false);
     fetchProperties();
@@ -289,7 +315,33 @@ const BrokerDashboard = () => {
                         )}
                       </div>
                       
-                      {lead.observations && (
+                      {lead.handled_by && (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600 mb-2">
+                            Sendo atendido por: <span className="font-medium">Corretor</span>
+                          </p>
+                        </div>
+                      )}
+
+                      {lead.handled_by === user?.id && (
+                        <div className="mb-4">
+                          <h4 className="font-medium mb-2">Observações:</h4>
+                          <Textarea
+                            value={lead.observations || ''}
+                            onChange={(e) => {
+                              const updatedLeads = leads.map(l => 
+                                l.id === lead.id ? { ...l, observations: e.target.value } : l
+                              );
+                              setLeads(updatedLeads);
+                            }}
+                            onBlur={() => updateLeadObservations(lead.id, lead.observations || '')}
+                            placeholder="Adicione observações sobre este lead..."
+                            className="min-h-[80px]"
+                          />
+                        </div>
+                      )}
+
+                      {lead.observations && lead.handled_by !== user?.id && (
                         <div className="mb-4">
                           <h4 className="font-medium mb-2">Observações:</h4>
                           <p className="text-gray-600 bg-gray-50 p-3 rounded">{lead.observations}</p>
