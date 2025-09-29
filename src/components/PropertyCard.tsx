@@ -6,7 +6,6 @@ import { Heart, Bed, Bath, Ruler, MapPin, Calendar, Share2 } from "lucide-react"
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PropertyCarousel } from "./PropertyCarousel";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PropertyCardProps {
   property: {
@@ -32,15 +31,8 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
 
   const fetchPropertyImages = async () => {
     try {
-      const { data, error } = await supabase
-        .from('property_images')
-        .select('image_url')
-        .eq('property_id', property.id)
-        .order('image_order');
-
-      if (error) throw error;
-      
-      const imageUrls = data?.map(img => img.image_url) || [];
+      // For now, just use the main image_url from property
+      const imageUrls: string[] = [];
       
       // Se não tem imagens cadastradas, usar a image_url principal
       if (imageUrls.length === 0 && property.image_url) {

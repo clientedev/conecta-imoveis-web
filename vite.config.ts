@@ -13,6 +13,12 @@ export default defineConfig(({ mode }) => ({
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port: 5000,

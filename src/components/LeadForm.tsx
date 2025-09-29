@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Send } from 'lucide-react';
 
@@ -29,11 +28,17 @@ export const LeadForm = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('leads')
-        .insert([formData]);
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to submit lead');
+      }
 
       toast({
         title: "Formulário enviado com sucesso!",

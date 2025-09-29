@@ -12,7 +12,6 @@ import { Footer } from "@/components/Footer";
 import { HeroSection } from "@/components/HeroSection";
 import { AboutSection } from "@/components/AboutSection";
 import { FilterBar } from "@/components/FilterBar";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Property {
@@ -45,18 +44,11 @@ const Index = () => {
   const fetchProperties = async () => {
     try {
       console.log('Fetching properties...');
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('is_available', true)
-        .order('featured', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching properties:', error);
-        throw error;
+      const response = await fetch('/api/properties');
+      if (!response.ok) {
+        throw new Error('Failed to fetch properties');
       }
-      
+      const data = await response.json();
       console.log('Properties fetched:', data?.length || 0);
       setProperties(data || []);
     } catch (error) {
