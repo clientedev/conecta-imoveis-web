@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
       },
     },
+    hmr: {
+      clientPort: 443,
+      protocol: 'wss',
+    },
   },
   preview: {
     port: 5000,
