@@ -193,8 +193,8 @@ export class DatabaseStorage implements IStorage {
   async assignNextLead(leadId: string): Promise<Lead | undefined> {
     // Use transaction to ensure atomic lead assignment
     return await db.transaction(async (tx) => {
-      // Get the next broker in order using FOR UPDATE to lock the row
-      const nextBroker = await tx
+      // Phase 1: Try to find a broker who has never been assigned (lastAssigned IS NULL)
+      let nextBroker = await tx
         .select({
           id: brokerOrder.id,
           brokerId: brokerOrder.brokerId,
@@ -203,13 +203,27 @@ export class DatabaseStorage implements IStorage {
           totalLeadsAssigned: brokerOrder.totalLeadsAssigned,
         })
         .from(brokerOrder)
-        .where(eq(brokerOrder.isActive, true))
-        .orderBy(
-          asc(brokerOrder.lastAssigned), // Null values first (never assigned)
-          asc(brokerOrder.orderPosition)
-        )
+        .where(and(eq(brokerOrder.isActive, true), isNull(brokerOrder.lastAssigned)))
+        .orderBy(asc(brokerOrder.orderPosition))
         .limit(1)
         .for('update');
+
+      // Phase 2: If no never-assigned broker found, get the one with oldest lastAssigned
+      if (nextBroker.length === 0) {
+        nextBroker = await tx
+          .select({
+            id: brokerOrder.id,
+            brokerId: brokerOrder.brokerId,
+            orderPosition: brokerOrder.orderPosition,
+            lastAssigned: brokerOrder.lastAssigned,
+            totalLeadsAssigned: brokerOrder.totalLeadsAssigned,
+          })
+          .from(brokerOrder)
+          .where(eq(brokerOrder.isActive, true))
+          .orderBy(asc(brokerOrder.lastAssigned), asc(brokerOrder.orderPosition))
+          .limit(1)
+          .for('update');
+      }
 
       if (nextBroker.length === 0) {
         console.log("No active brokers found for lead assignment");
