@@ -15,18 +15,6 @@ export const adminEmails = pgTable("admin_emails", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Profiles table
-export const profiles = pgTable("profiles", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  fullName: varchar("full_name", { length: 255 }),
-  phone: varchar("phone", { length: 20 }),
-  role: userRoleEnum("role").default("client"),
-  userType: varchar("user_type", { length: 50 }),
-  isAdmin: boolean("is_admin").default(false),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
 // Properties table
 export const properties = pgTable("properties", {
