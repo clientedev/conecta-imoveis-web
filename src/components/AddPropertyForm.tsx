@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MultiImageUpload } from '@/components/MultiImageUpload';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 
 interface AddPropertyFormProps {
   onSuccess: () => void;
@@ -43,42 +43,27 @@ export const AddPropertyForm = ({ onSuccess, onCancel }: AddPropertyFormProps) =
     setLoading(true);
 
     try {
-      // Inserir propriedade
-      const { data: property, error: propertyError } = await supabase
-        .from('properties')
-        .insert({
+      const response = await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           title: formData.title,
           description: formData.description,
           location: formData.location,
-          price: Number(formData.price),
+          price: formData.price,
           bedrooms: formData.bedrooms ? Number(formData.bedrooms) : null,
           bathrooms: formData.bathrooms ? Number(formData.bathrooms) : null,
           area: formData.area || null,
-          property_type: formData.property_type || null,
+          propertyType: formData.property_type || null,
           featured: formData.featured,
-          image_url: images[0] || null,
-          is_available: true
+          imageUrl: images[0] || null,
+          isAvailable: true,
+          additionalImages: images.slice(1)
         })
-        .select()
-        .single();
+      });
 
-      if (propertyError) throw propertyError;
-
-      // Inserir imagens adicionais
-      if (images.length > 0 && property) {
-        const imageInserts = images.map((imageUrl, index) => ({
-          property_id: property.id,
-          image_url: imageUrl,
-          image_order: index
-        }));
-
-        const { error: imagesError } = await supabase
-          .from('property_images')
-          .insert(imageInserts);
-
-        if (imagesError) {
-          console.error('Erro ao inserir imagens:', imagesError);
-        }
+      if (!response.ok) {
+        throw new Error('Failed to create property');
       }
 
       toast({

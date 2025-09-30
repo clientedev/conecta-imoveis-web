@@ -35,6 +35,7 @@ export interface IStorage {
   getAllProperties(): Promise<Property[]>;
   createProperty(insertProperty: InsertProperty): Promise<Property>;
   updateProperty(id: string, property: Partial<Property>): Promise<Property | undefined>;
+  addPropertyImages(propertyId: string, imageUrls: string[]): Promise<void>;
 
   // Lead operations
   getLead(id: string): Promise<Lead | undefined>;
@@ -118,6 +119,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(properties.id, id))
       .returning();
     return updatedProperty || undefined;
+  }
+
+  async addPropertyImages(propertyId: string, imageUrls: string[]): Promise<void> {
+    if (imageUrls.length === 0) return;
+    
+    const imageInserts = imageUrls.map((imageUrl, index) => ({
+      propertyId,
+      imageUrl,
+      imageOrder: index
+    }));
+    
+    await db.insert(propertyImages).values(imageInserts);
   }
 
   // Lead operations

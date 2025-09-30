@@ -91,10 +91,21 @@ app.get('/api/properties/:id', async (c) => {
   }
 });
 
-app.post('/api/properties', zValidator('json', insertPropertySchema), async (c) => {
+const createPropertySchema = insertPropertySchema.extend({
+  additionalImages: z.array(z.string()).optional()
+});
+
+app.post('/api/properties', zValidator('json', createPropertySchema), async (c) => {
   try {
-    const propertyData = c.req.valid('json');
+    const body = c.req.valid('json');
+    const { additionalImages, ...propertyData } = body;
+    
     const property = await storage.createProperty(propertyData);
+    
+    if (additionalImages && additionalImages.length > 0) {
+      await storage.addPropertyImages(property.id, additionalImages);
+    }
+    
     return c.json(property, 201);
   } catch (error) {
     console.error('Error creating property:', error);

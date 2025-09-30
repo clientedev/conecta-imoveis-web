@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface MultiImageUploadProps {
   propertyId?: string;
@@ -39,21 +38,15 @@ export const MultiImageUpload = ({
     setUploading(true);
 
     try {
-      const uploadPromises = files.map(async (file, index) => {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${index}.${fileExt}`;
-        
-        const { data, error } = await supabase.storage
-          .from('property-images')
-          .upload(fileName, file);
-
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('property-images')
-          .getPublicUrl(fileName);
-
-        return publicUrl;
+      const uploadPromises = files.map(async (file) => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
       });
 
       const uploadedUrls = await Promise.all(uploadPromises);
@@ -61,21 +54,6 @@ export const MultiImageUpload = ({
       
       setImages(newImages);
       onImagesChange(newImages);
-      
-      // Se temos propertyId, salvar no banco
-      if (propertyId) {
-        const insertPromises = uploadedUrls.map((url, index) => 
-          supabase
-            .from('property_images')
-            .insert({
-              property_id: propertyId,
-              image_url: url,
-              image_order: images.length + index
-            })
-        );
-        
-        await Promise.all(insertPromises);
-      }
 
       toast({
         title: "Sucesso",
@@ -85,7 +63,7 @@ export const MultiImageUpload = ({
       console.error('Error uploading images:', error);
       toast({
         title: "Erro",
-        description: "Erro ao fazer upload das imagens",
+        description: "Erro ao processar as imagens",
         variant: "destructive"
       });
     } finally {
@@ -98,23 +76,6 @@ export const MultiImageUpload = ({
 
   const removeImage = async (index: number, imageUrl: string) => {
     try {
-      // Remover do storage
-      const fileName = imageUrl.split('/').pop();
-      if (fileName) {
-        await supabase.storage
-          .from('property-images')
-          .remove([fileName]);
-      }
-
-      // Remover do banco se temos propertyId
-      if (propertyId) {
-        await supabase
-          .from('property_images')
-          .delete()
-          .eq('property_id', propertyId)
-          .eq('image_url', imageUrl);
-      }
-
       const newImages = images.filter((_, i) => i !== index);
       setImages(newImages);
       onImagesChange(newImages);

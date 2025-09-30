@@ -97,10 +97,19 @@ The following environment variables are automatically configured:
 - `NODE_ENV` - Environment (development/production)
 
 ## Deployment
-The app is configured for Replit Autoscale deployment:
+
+### Railway Deployment
+This app is prepared for deployment on Railway:
 - Build command: `npm run build`
 - Start command: `npm start`
 - The server serves both API and static files in production
+- Make sure to set the `DATABASE_URL` environment variable on Railway
+- Port is automatically assigned by Railway via the `PORT` environment variable
+
+### Replit Deployment (Alternative)
+The app is also configured for Replit Autoscale deployment:
+- Build command: `npm run build`
+- Start command: `npm start`
 
 ## User Roles
 1. **Admin**: Full system access, user management, lead oversight
@@ -115,11 +124,13 @@ The platform features an automatic lead distribution system:
 - New leads are marked as "pending" then auto-assigned to the next broker
 
 ## Recent Changes
-- Migrated from Supabase to Replit PostgreSQL database
+- Removed all Supabase dependencies and code
+- Using PostgreSQL directly with Drizzle ORM
 - Updated Zod to v4 for compatibility
 - Configured Vite HMR for Replit proxy support
 - Set up TypeScript path aliases (@shared, @server, @/)
-- Configured deployment for Autoscale
+- Prepared for Railway deployment
+- Image upload simplified to use base64 encoding (no external storage)
 
 ## Technologies Used
 - React 18
