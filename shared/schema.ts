@@ -8,6 +8,19 @@ export const userRoleEnum = pgEnum("user_role", ["admin", "corretor", "client"])
 export const leadStatusEnum = pgEnum("lead_status", ["pending", "assigned", "contacted", "qualified", "converted", "lost"]);
 export const appointmentStatusEnum = pgEnum("appointment_status", ["scheduled", "confirmed", "completed", "cancelled", "rescheduled"]);
 
+// Profiles table
+export const profiles = pgTable("profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  fullName: varchar("full_name", { length: 255 }),
+  phone: varchar("phone", { length: 20 }),
+  role: userRoleEnum("role").default("client"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Admin emails table
 export const adminEmails = pgTable("admin_emails", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
