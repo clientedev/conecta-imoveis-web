@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PropertyDetail from "./pages/PropertyDetail";
 import ScheduleVisit from "./pages/ScheduleVisit";
 import LeadsPage from "./pages/LeadsPage";
+import LeadCapture from "./pages/LeadCapture";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/imovel/:id" element={<PropertyDetail />} />
             <Route path="/agendar-visita/:id" element={<ScheduleVisit />} />
+            <Route path="/interesse" element={<LeadCapture />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

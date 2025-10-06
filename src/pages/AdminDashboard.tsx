@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Home, Users, Calendar, TrendingUp, UserCheck, UserX, Mail, Phone, Download, CheckCircle, Clock, Shield, ShieldOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Home, Users, Calendar, TrendingUp, UserCheck, UserX, Mail, Phone, Download, CheckCircle, Clock, Shield, ShieldOff, ArrowUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
+import { BrokerOrderManager } from '@/components/BrokerOrderManager';
 
 interface Property {
   id: string;
@@ -868,6 +869,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+            <TabsTrigger value="broker-order">
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              Ordem dos Corretores
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="properties">
@@ -1483,6 +1488,10 @@ const AdminDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="broker-order">
+            <BrokerOrderManager />
           </TabsContent>
         </Tabs>
       </main>
