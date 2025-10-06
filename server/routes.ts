@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { storage } from './storage';
+import bcrypt from 'bcrypt';
 import { 
   insertProfileSchema, 
   insertPropertySchema, 
@@ -14,6 +15,83 @@ import {
 const app = new Hono();
 
 app.use('*', cors());
+
+// Authentication routes
+app.post('/api/auth/login', async (c) => {
+  try {
+    const { email, password } = await c.req.json();
+    
+    if (!email || !password) {
+      return c.json({ error: 'Email e senha são obrigatórios' }, 400);
+    }
+
+    const profile = await storage.getProfileByEmail(email);
+    
+    if (!profile) {
+      return c.json({ error: 'Email ou senha inválidos' }, 401);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, profile.password);
+    
+    if (!isPasswordValid) {
+      return c.json({ error: 'Email ou senha inválidos' }, 401);
+    }
+
+    const { password: _, ...profileWithoutPassword } = profile;
+    
+    return c.json({
+      user: { id: profile.id, email: profile.email },
+      profile: {
+        ...profileWithoutPassword,
+        is_admin: profile.role === 'admin',
+        user_type: profile.role === 'corretor' ? 'broker' : profile.role
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return c.json({ error: 'Erro ao fazer login' }, 500);
+  }
+});
+
+app.post('/api/auth/register', async (c) => {
+  try {
+    const { email, password, fullName, phone } = await c.req.json();
+    
+    if (!email || !password || !fullName) {
+      return c.json({ error: 'Email, senha e nome completo são obrigatórios' }, 400);
+    }
+
+    const existingProfile = await storage.getProfileByEmail(email);
+    if (existingProfile) {
+      return c.json({ error: 'Email já cadastrado' }, 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const newProfile = await storage.createProfile({
+      email,
+      password: hashedPassword,
+      fullName,
+      phone,
+      role: 'client',
+      isActive: true
+    });
+
+    const { password: _, ...profileWithoutPassword } = newProfile;
+    
+    return c.json({
+      user: { id: newProfile.id, email: newProfile.email },
+      profile: {
+        ...profileWithoutPassword,
+        is_admin: false,
+        user_type: 'client'
+      }
+    }, 201);
+  } catch (error) {
+    console.error('Register error:', error);
+    return c.json({ error: 'Erro ao criar conta' }, 500);
+  }
+});
 
 // Profiles routes
 app.get('/api/profiles', async (c) => {
