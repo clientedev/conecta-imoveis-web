@@ -235,6 +235,14 @@ app.post('/api/leads', zValidator('json', insertLeadSchema), async (c) => {
   try {
     const leadData = c.req.valid('json');
     const lead = await storage.createLead(leadData);
+    
+    try {
+      await storage.assignNextLead(lead.id);
+      console.log(`Lead ${lead.id} automatically assigned to broker`);
+    } catch (assignError) {
+      console.error('Error auto-assigning lead:', assignError);
+    }
+    
     return c.json(lead, 201);
   } catch (error) {
     console.error('Error creating lead:', error);
