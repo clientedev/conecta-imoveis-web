@@ -91,15 +91,12 @@ railway run npm run db:push
 
 ---
 
-## 📁 ARQUIVOS CRIADOS
+## 📁 ARQUIVOS DE CONFIGURAÇÃO
 
 ### **railway.toml**
 ```toml
 [build]
 builder = "nixpacks"
-
-[build.nixpacks]
-nixpacksConfigPath = "nixpacks.toml"
 
 [deploy]
 startCommand = "npm start"
@@ -107,20 +104,7 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 ```
 
-### **nixpacks.toml**
-```toml
-[phases.setup]
-nixPkgs = ["nodejs-20", "bun"]
-
-[phases.install]
-cmds = ["bun install"]
-
-[phases.build]
-cmds = ["npm run build"]
-
-[start]
-cmd = "npm start"
-```
+**Nota:** O arquivo `nixpacks.toml` foi removido para usar auto-detecção do Railway (mais confiável e menos propenso a erros).
 
 ---
 
