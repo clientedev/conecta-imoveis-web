@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs-20", "bun"]
+
+[phases.install]
+cmds = ["bun install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"

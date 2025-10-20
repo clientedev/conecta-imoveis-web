@@ -120,7 +120,7 @@ app.get('/api/profiles/:id', async (c) => {
 
 app.post('/api/profiles', zValidator('json', insertProfileSchema), async (c) => {
   try {
-    const profileData = c.req.valid('json');
+    const profileData = c.req.valid('json') as z.infer<typeof insertProfileSchema>;
     const profile = await storage.createProfile(profileData);
     return c.json(profile, 201);
   } catch (error) {
@@ -175,7 +175,7 @@ const createPropertySchema = insertPropertySchema.extend({
 
 app.post('/api/properties', zValidator('json', createPropertySchema), async (c) => {
   try {
-    const body = c.req.valid('json');
+    const body = c.req.valid('json') as z.infer<typeof createPropertySchema>;
     const { additionalImages, ...propertyData } = body;
     
     const property = await storage.createProperty(propertyData);
@@ -233,7 +233,7 @@ app.get('/api/leads/:id', async (c) => {
 
 app.post('/api/leads', zValidator('json', insertLeadSchema), async (c) => {
   try {
-    const leadData = c.req.valid('json');
+    const leadData = c.req.valid('json') as z.infer<typeof insertLeadSchema>;
     const lead = await storage.createLead(leadData);
     
     try {
@@ -321,7 +321,7 @@ app.get('/api/appointments/:id', async (c) => {
 
 app.post('/api/appointments', zValidator('json', insertAppointmentSchema), async (c) => {
   try {
-    const appointmentData = c.req.valid('json');
+    const appointmentData = c.req.valid('json') as z.infer<typeof insertAppointmentSchema>;
     const appointment = await storage.createAppointment(appointmentData);
     return c.json(appointment, 201);
   } catch (error) {
