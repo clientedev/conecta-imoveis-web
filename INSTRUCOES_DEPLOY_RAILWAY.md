@@ -59,10 +59,35 @@ git push origin main
 ### 5️⃣ **Deploy Automático**
 
 Railway vai:
-1. ✅ Ler `nixpacks.toml` para instruções de build
-2. ✅ Instalar dependências com `bun install`
+1. ✅ Detectar Node.js e Bun automaticamente
+2. ✅ Instalar dependências com `bun install` (ou `npm install`)
 3. ✅ Rodar build com `npm run build`
 4. ✅ Iniciar servidor com `npm start`
+
+### 6️⃣ **Inicializar Database (IMPORTANTE)**
+
+Após o primeiro deploy bem-sucedido:
+1. No Railway, clique no seu serviço
+2. Vá em "Settings" → "Networking" → copie a URL
+3. Ou use o Railway CLI:
+```bash
+# Instale o Railway CLI (se ainda não tem)
+npm i -g @railway/cli
+
+# Faça login
+railway login
+
+# Entre no projeto
+railway link
+
+# Execute o comando de push do banco
+railway run npm run db:push
+```
+
+**Alternativa sem CLI:**
+- Adicione um script temporário ao package.json: `"postinstall": "npm run db:push"`
+- Faça deploy
+- Depois remova o script e faça novo deploy
 
 ---
 
