@@ -421,18 +421,6 @@ Contribuições são bem-vindas! Para contribuir:
 4. Push para a branch (`git push origin feature/MinhaFeature`)
 5. Abra um Pull Request
 
-## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 👨‍💻 Autores
-
-M&M Conecta Imóveis - Plataforma de Gestão Imobiliária
-
-## 📞 Suporte
-
-Para suporte, entre em contato através do formulário no site ou envie um email para contato@mmconectaimoveis.com
-
----
 
 Desenvolvido com ❤️ para revolucionar a gestão imobiliária
